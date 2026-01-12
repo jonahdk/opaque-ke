@@ -16,3 +16,4 @@ crate-type = ["cdylib"]
 [dependencies]
 pyo3 = { version = "0.21", features = ["extension-module"] }
 opaque-ke = { path = "../..", default-features = false, features = ["std", "ristretto255", "argon2", "serde"] }
+sha2 = { version = "0.10", default-features = false }

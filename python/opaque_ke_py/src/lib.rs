@@ -7,6 +7,7 @@ mod errors;
 mod login;
 mod registration;
 mod server;
+mod suite;
 mod types;
 
 #[pymodule]

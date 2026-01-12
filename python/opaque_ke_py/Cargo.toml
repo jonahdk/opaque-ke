@@ -1,0 +1,18 @@
+[package]
+name = "opaque-ke-py"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+description = "Python bindings for opaque-ke"
+repository = "https://github.com/jonahdk/opaque-ke"
+readme = "README.md"
+keywords = ["cryptography", "opaque", "passwords", "authentication", "python"]
+categories = ["cryptography"]
+
+[lib]
+name = "opaque_ke"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.21", features = ["extension-module"] }
+opaque-ke = { path = "../..", default-features = false, features = ["std", "ristretto255", "argon2", "serde"] }

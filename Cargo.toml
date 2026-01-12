@@ -121,3 +121,7 @@ required-features = ["argon2"]
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(test_hsm)'] }
+
+[workspace]
+members = ["python/opaque_ke_py"]
+resolver = "2"

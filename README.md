@@ -25,6 +25,16 @@ Add the following line to the dependencies of your `Cargo.toml`:
 opaque-ke = "4.1.0-pre.1"
 ```
 
+Python bindings (scaffold)
+--------------------------
+
+The PyO3 bindings live in `python/opaque_ke_py/` and are built with `maturin`.
+From that directory, run:
+
+```
+maturin develop
+```
+
 ### Minimum Supported Rust Version
 
 Rust **1.85** or higher.

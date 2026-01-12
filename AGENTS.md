@@ -10,7 +10,7 @@ This fork’s primary goal is to add robust, user-friendly, and secure Python bi
 - `examples/` provides runnable usage samples (e.g., `simple_login`).
 - `scripts/` includes helper expect scripts for demo flows.
 - Project config lives in `Cargo.toml`, with tooling settings in `rustfmt.toml`, `clippy.toml`, `taplo.toml`, and `deny.toml`.
-- Python bindings should live in a dedicated crate/module once added (document the path and build steps here when introduced).
+- `python/opaque_ke_py/` hosts the PyO3 bindings crate and `pyproject.toml` for maturin builds.
 
 ## Build, Test, and Development Commands
 - `cargo build` — compile the library.
@@ -19,7 +19,8 @@ This fork’s primary goal is to add robust, user-friendly, and secure Python bi
 - `cargo bench` — run Criterion benchmarks in `benches/`.
 - `cargo fmt` — format Rust code per `rustfmt.toml`.
 - `cargo clippy --all-targets --all-features` — lint with project Clippy settings.
-- Add PyO3/Python packaging commands here when the bindings are introduced.
+- `cd python/opaque_ke_py && maturin develop` — build and install the Python extension locally.
+- `cd python/opaque_ke_py && maturin build` — build Python wheels.
 
 ## Coding Style & Naming Conventions
 - Rust 2024 edition; follow `rustfmt.toml` (doc comment and string formatting enabled, Unix newlines).

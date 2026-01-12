@@ -200,7 +200,7 @@ features = ["std", "ristretto255", "argon2", "serde"]
 - ~~Do we want a higher-level `OpaqueClient`/`OpaqueServer` convenience API on top of message-bytes primitives?~~ Yes
 - Should server key material/HSM pathways be exposed in Python initially or deferred?
 
-## Implementation timeline (proposed)
+## Implementation timeline
 1: Scaffold bindings crate, minimal PyO3 module layout, and build config (maturin/pyproject).
 2: Implement minimal API (Ristretto255 + SHA-512), registration/login flows, and serialization.
 3: Error mapping, parameter objects, context support, state handling, and encoding helpers.
@@ -208,4 +208,4 @@ features = ["std", "ristretto255", "argon2", "serde"]
 5: Expand suites (P-256/P-384/P-521, KEM if enabled), wheels for 3.9–3.13, CI packaging.
 
 # NOTES
-Hey. Everything else in this file (and in AGENTS.md) and in any commit after a85a7be is all AI-written. And the agents working on those don't know what the JS stuff is (like you, since you are also one, if you're reading this). But basically just have a file in-repo for documenting all the JS stuff that needs clarification, but continue working. Whenever it gets clarified, implement or fix anything that needs to be implemented or fixed. Also, I'm guessing you can definitely tell by reading this note is that it is, in fact, 100% human-written (especially in stark contrast to everything else in here)
+Hey. Everything else in this file (and in AGENTS.md) and in any commit after a85a7be is all AI-written. And the agents working on those don't know what the JS stuff is (like you, since you are also one, if you're reading this). But basically just have a file in-repo for documenting all the JS stuff that needs clarification, but continue working. Whenever it gets clarified, implement or fix anything that needs to be implemented or fixed.

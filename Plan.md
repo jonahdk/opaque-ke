@@ -102,7 +102,7 @@ Expose small, explicit parameter classes mirroring Rust structs:
 - `ClientRegistrationFinishParameters(identifiers: Optional[Identifiers], ksf: Optional[KsfParameters])`
 - `ServerLoginParameters(context: Optional[bytes], identifiers: Optional[Identifiers])`
 - `ClientLoginFinishParameters(context: Optional[bytes], identifiers: Optional[Identifiers], server_s_pk: Optional[bytes])`
-- `KeyStretching(variant: Literal[\"memory_constrained\", \"rfc_recommended\"], params: Optional[Argon2Params])`
+- `KeyStretching(variant: Literal["memory_constrained", "rfc_recommended"], params: Optional[Argon2Params])`
   - Align defaults with JS presets; feature-gated when `argon2` is enabled.
 Note: `context` is supported in both server and client login parameters; mismatches must fail.
 
@@ -156,16 +156,16 @@ Rust `ProtocolError` variants map 1:1 to these Python exceptions, preserving the
 Minimal `pyproject.toml` sketch (for the plan):
 ```toml
 [build-system]
-requires = [\"maturin>=1.4\"]
-build-backend = \"maturin\"
+requires = ["maturin>=1.4"]
+build-backend = "maturin"
 
 [project]
-name = \"opaque-ke\"
-requires-python = \">=3.9\"
+name = "opaque-ke"
+requires-python = ">=3.9"
 
 [tool.maturin]
-bindings = \"pyo3\"
-features = [\"std\", \"ristretto255\", \"argon2\", \"serde\"]
+bindings = "pyo3"
+features = ["std", "ristretto255", "argon2", "serde"]
 ```
 
 ## Testing plan
@@ -185,7 +185,7 @@ features = [\"std\", \"ristretto255\", \"argon2\", \"serde\"]
 - Provide a minimal end-to-end example (registration + login).
 - Document feature flags, supported cipher suites, and security caveats.
 - Document encoding rules (bytes in Python, base64 for transport/storage), with helper usage examples.
-- State handling guidance: \"state is not reusable\" and \"serialize to bytes; base64 for storage\".
+- State handling guidance: "state is not reusable" and "serialize to bytes; base64 for storage".
   - Define lifetime expectations for state objects (single-use, per-step).
 
 ## Implementation phases

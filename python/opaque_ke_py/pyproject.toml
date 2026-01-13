@@ -9,4 +9,3 @@ dynamic = ["version"]
 
 [tool.maturin]
 bindings = "pyo3"
-features = ["std", "ristretto255", "argon2", "serde"]

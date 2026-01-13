@@ -9,7 +9,10 @@ use pyo3::types::PyModule;
 
 use crate::errors::to_py_err;
 use crate::suite::{SUITE_NAME, Suite};
-use crate::types::{ServerLoginState, ServerRegistration as PyServerRegistration, ServerSetup};
+use crate::types::{
+    ServerLoginParameters as PyServerLoginParameters, ServerLoginState,
+    ServerRegistration as PyServerRegistration, ServerSetup,
+};
 
 #[pyclass(unsendable)]
 pub struct OpaqueServer {
@@ -66,16 +69,35 @@ impl OpaqueServer {
         password_file: PyRef<'_, PyServerRegistration>,
         request: Vec<u8>,
         credential_identifier: Vec<u8>,
+        params: Option<PyRef<'_, PyServerLoginParameters>>,
     ) -> PyResult<(Vec<u8>, ServerLoginState)> {
         let request = CredentialRequest::<Suite>::deserialize(&request).map_err(to_py_err)?;
         let mut rng = OsRng;
+        let identifiers = params
+            .as_ref()
+            .and_then(|params| params.identifiers().cloned());
+        let opaque_identifiers = identifiers
+            .as_ref()
+            .map(|ids| ids.as_opaque())
+            .unwrap_or_default();
+        let context = params
+            .as_ref()
+            .and_then(|params| params.context().map(|value| value.to_vec()));
+        let parameters = if params.is_some() {
+            ServerLoginParameters {
+                context: context.as_deref(),
+                identifiers: opaque_identifiers,
+            }
+        } else {
+            ServerLoginParameters::default()
+        };
         let result = ServerLogin::<Suite>::start(
             &mut rng,
             &server_setup.inner,
             Some(password_file.inner.clone()),
             request,
             &credential_identifier,
-            ServerLoginParameters::default(),
+            parameters,
         )
         .map_err(to_py_err)?;
         Ok((
@@ -90,20 +112,37 @@ impl OpaqueServer {
         &self,
         mut state: PyRefMut<'_, ServerLoginState>,
         finalization: Vec<u8>,
+        params: Option<PyRef<'_, PyServerLoginParameters>>,
     ) -> PyResult<Vec<u8>> {
         let state = state.take()?;
         let finalization =
             CredentialFinalization::<Suite>::deserialize(&finalization).map_err(to_py_err)?;
-        let result = state
-            .finish(finalization, ServerLoginParameters::default())
-            .map_err(to_py_err)?;
+        let identifiers = params
+            .as_ref()
+            .and_then(|params| params.identifiers().cloned());
+        let opaque_identifiers = identifiers
+            .as_ref()
+            .map(|ids| ids.as_opaque())
+            .unwrap_or_default();
+        let context = params
+            .as_ref()
+            .and_then(|params| params.context().map(|value| value.to_vec()));
+        let parameters = if params.is_some() {
+            ServerLoginParameters {
+                context: context.as_deref(),
+                identifiers: opaque_identifiers,
+            }
+        } else {
+            ServerLoginParameters::default()
+        };
+        let result = state.finish(finalization, parameters).map_err(to_py_err)?;
         Ok(result.session_key.to_vec())
     }
 }
 
-pub fn register(py: Python<'_>, parent: &PyModule) -> PyResult<()> {
-    let module = PyModule::new(py, "server")?;
+pub fn register(py: Python<'_>, parent: &Bound<'_, PyModule>) -> PyResult<()> {
+    let module = PyModule::new_bound(py, "server")?;
     module.add_class::<OpaqueServer>()?;
-    parent.add_submodule(module)?;
+    parent.add_submodule(&module)?;
     Ok(())
 }

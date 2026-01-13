@@ -15,6 +15,7 @@ This fork’s primary goal is to add robust, user-friendly, and secure Python bi
 ## Build, Test, and Development Commands
 - `cargo fmt` — format Rust code per `rustfmt.toml`.
 - `cargo clippy --all-targets --all-features` — lint with project Clippy settings.
+- `cargo check` — check for compilation errors.
 - `cargo build` — compile the library.
 - `cargo test` — run unit + integration tests.
 - `cargo test --all-features` — exercise feature-gated code paths.

@@ -14,6 +14,7 @@ name = "opaque_ke"
 crate-type = ["cdylib"]
 
 [dependencies]
+base64 = { version = "0.22", default-features = false, features = ["alloc"] }
 pyo3 = { version = "0.21", features = ["extension-module"] }
 opaque-ke = { path = "../..", default-features = false, features = ["std", "ristretto255", "argon2", "serde"] }
 sha2 = { version = "0.10", default-features = false }

@@ -8,10 +8,10 @@ fn available() -> Vec<&'static str> {
     vec![SUITE_NAME]
 }
 
-pub fn register(py: Python<'_>, parent: &PyModule) -> PyResult<()> {
-    let module = PyModule::new(py, "ciphersuites")?;
+pub fn register(py: Python<'_>, parent: &Bound<'_, PyModule>) -> PyResult<()> {
+    let module = PyModule::new_bound(py, "ciphersuites")?;
     module.add("RISTRETTO255_SHA512", SUITE_NAME)?;
-    module.add_function(wrap_pyfunction!(available, module)?)?;
-    parent.add_submodule(module)?;
+    module.add_function(wrap_pyfunction!(available, &module)?)?;
+    parent.add_submodule(&module)?;
     Ok(())
 }

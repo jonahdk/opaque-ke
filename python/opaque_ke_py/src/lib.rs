@@ -1,3 +1,5 @@
+#![allow(unsafe_op_in_unsafe_fn)]
+
 use pyo3::prelude::*;
 
 mod ciphersuites;
@@ -11,7 +13,7 @@ mod suite;
 mod types;
 
 #[pymodule]
-fn opaque_ke(py: Python<'_>, m: &PyModule) -> PyResult<()> {
+fn opaque_ke(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     ciphersuites::register(py, m)?;
     registration::register(py, m)?;

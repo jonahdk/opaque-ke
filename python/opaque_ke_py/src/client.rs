@@ -7,9 +7,13 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::PyModule;
 
-use crate::errors::to_py_err;
+use crate::errors::{invalid_login_err, to_py_err};
 use crate::suite::{SUITE_NAME, Suite};
-use crate::types::{ClientLoginState, ClientRegistrationState};
+use crate::types::{
+    ClientLoginFinishParameters as PyClientLoginFinishParameters, ClientLoginState,
+    ClientRegistrationFinishParameters as PyClientRegistrationFinishParameters,
+    ClientRegistrationState,
+};
 
 #[pyclass(unsendable)]
 pub struct OpaqueClient {
@@ -56,17 +60,30 @@ impl OpaqueClient {
         mut state: PyRefMut<'_, ClientRegistrationState>,
         password: Vec<u8>,
         response: Vec<u8>,
+        params: Option<PyRef<'_, PyClientRegistrationFinishParameters>>,
     ) -> PyResult<(Vec<u8>, Vec<u8>)> {
         let state = state.take()?;
         let response = RegistrationResponse::<Suite>::deserialize(&response).map_err(to_py_err)?;
         let mut rng = OsRng;
+        let identifiers = params
+            .as_ref()
+            .and_then(|params| params.identifiers().cloned());
+        let opaque_identifiers = identifiers
+            .as_ref()
+            .map(|ids| ids.as_opaque())
+            .unwrap_or_default();
+        let ksf = params
+            .as_ref()
+            .and_then(|params| params.key_stretching())
+            .map(|ksf| ksf.build_ksf())
+            .transpose()?;
+        let finish_params = if params.is_some() {
+            ClientRegistrationFinishParameters::new(opaque_identifiers, ksf.as_ref())
+        } else {
+            ClientRegistrationFinishParameters::default()
+        };
         let result = state
-            .finish(
-                &mut rng,
-                &password,
-                response,
-                ClientRegistrationFinishParameters::default(),
-            )
+            .finish(&mut rng, &password, response, finish_params)
             .map_err(to_py_err)?;
         Ok((
             result.message.serialize().to_vec(),
@@ -90,23 +107,48 @@ impl OpaqueClient {
         mut state: PyRefMut<'_, ClientLoginState>,
         password: Vec<u8>,
         response: Vec<u8>,
+        params: Option<PyRef<'_, PyClientLoginFinishParameters>>,
     ) -> PyResult<(Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>)> {
         let state = state.take()?;
         let response = CredentialResponse::<Suite>::deserialize(&response).map_err(to_py_err)?;
         let mut rng = OsRng;
+        let identifiers = params
+            .as_ref()
+            .and_then(|params| params.identifiers().cloned());
+        let opaque_identifiers = identifiers
+            .as_ref()
+            .map(|ids| ids.as_opaque())
+            .unwrap_or_default();
+        let ksf = params
+            .as_ref()
+            .and_then(|params| params.key_stretching())
+            .map(|ksf| ksf.build_ksf())
+            .transpose()?;
+        let context = params
+            .as_ref()
+            .and_then(|params| params.context().map(|value| value.to_vec()));
+        let expected_server_s_pk = params
+            .as_ref()
+            .and_then(|params| params.server_s_pk().map(|value| value.to_vec()));
+        let finish_params = if params.is_some() {
+            ClientLoginFinishParameters::new(context.as_deref(), opaque_identifiers, ksf.as_ref())
+        } else {
+            ClientLoginFinishParameters::default()
+        };
         let result = state
-            .finish(
-                &mut rng,
-                &password,
-                response,
-                ClientLoginFinishParameters::default(),
-            )
+            .finish(&mut rng, &password, response, finish_params)
             .map_err(to_py_err)?;
+        let server_s_pk = result.server_s_pk.serialize().to_vec();
+        if let Some(expected) = expected_server_s_pk {
+            if expected != server_s_pk {
+                return Err(invalid_login_err("server public key mismatch"));
+            }
+        }
         Ok((
             result.message.serialize().to_vec(),
             result.session_key.to_vec(),
             result.export_key.to_vec(),
-            result.server_s_pk.serialize().to_vec(),
+            server_s_pk,
         ))
     }
 
@@ -115,14 +157,14 @@ impl OpaqueClient {
         if expected == actual {
             Ok(())
         } else {
-            Err(PyErr::new::<PyValueError, _>("server public key mismatch"))
+            Err(invalid_login_err("server public key mismatch"))
         }
     }
 }
 
-pub fn register(py: Python<'_>, parent: &PyModule) -> PyResult<()> {
-    let module = PyModule::new(py, "client")?;
+pub fn register(py: Python<'_>, parent: &Bound<'_, PyModule>) -> PyResult<()> {
+    let module = PyModule::new_bound(py, "client")?;
     module.add_class::<OpaqueClient>()?;
-    parent.add_submodule(module)?;
+    parent.add_submodule(&module)?;
     Ok(())
 }

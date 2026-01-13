@@ -4,9 +4,10 @@ use opaque_ke::{
     RegistrationResponse, RegistrationUpload, ServerRegistration,
 };
 use pyo3::prelude::*;
-use pyo3::types::PyModule;
+use pyo3::types::{PyBytes, PyModule};
 
 use crate::errors::to_py_err;
+use crate::py_utils;
 use crate::suite::Suite;
 use crate::types::{
     ClientRegistrationFinishParameters as PyClientRegistrationFinishParameters,
@@ -14,11 +15,15 @@ use crate::types::{
 };
 
 #[pyfunction(name = "start_registration")]
-fn client_start_registration(password: Vec<u8>) -> PyResult<(Vec<u8>, ClientRegistrationState)> {
+fn client_start_registration(
+    py: Python<'_>,
+    password: Vec<u8>,
+) -> PyResult<(Py<PyBytes>, ClientRegistrationState)> {
     let mut rng = OsRng;
     let result = ClientRegistration::<Suite>::start(&mut rng, &password).map_err(to_py_err)?;
+    let message = result.message.serialize().to_vec();
     Ok((
-        result.message.serialize().to_vec(),
+        py_utils::to_pybytes(py, &message),
         ClientRegistrationState {
             inner: Some(result.state),
         },
@@ -27,11 +32,12 @@ fn client_start_registration(password: Vec<u8>) -> PyResult<(Vec<u8>, ClientRegi
 
 #[pyfunction(name = "finish_registration")]
 fn client_finish_registration(
+    py: Python<'_>,
     mut state: PyRefMut<'_, ClientRegistrationState>,
     password: Vec<u8>,
     response: Vec<u8>,
     params: Option<PyRef<'_, PyClientRegistrationFinishParameters>>,
-) -> PyResult<(Vec<u8>, Vec<u8>)> {
+) -> PyResult<(Py<PyBytes>, Py<PyBytes>)> {
     let state = state.take()?;
     let response = RegistrationResponse::<Suite>::deserialize(&response).map_err(to_py_err)?;
     let mut rng = OsRng;
@@ -55,23 +61,27 @@ fn client_finish_registration(
     let result = state
         .finish(&mut rng, &password, response, finish_params)
         .map_err(to_py_err)?;
+    let message = result.message.serialize().to_vec();
+    let export_key = result.export_key.to_vec();
     Ok((
-        result.message.serialize().to_vec(),
-        result.export_key.to_vec(),
+        py_utils::to_pybytes(py, &message),
+        py_utils::to_pybytes(py, &export_key),
     ))
 }
 
 #[pyfunction(name = "start_registration")]
 fn server_start_registration(
+    py: Python<'_>,
     server_setup: PyRef<'_, ServerSetup>,
     request: Vec<u8>,
     credential_identifier: Vec<u8>,
-) -> PyResult<Vec<u8>> {
+) -> PyResult<Py<PyBytes>> {
     let request = RegistrationRequest::<Suite>::deserialize(&request).map_err(to_py_err)?;
     let result =
         ServerRegistration::<Suite>::start(&server_setup.inner, request, &credential_identifier)
             .map_err(to_py_err)?;
-    Ok(result.message.serialize().to_vec())
+    let message = result.message.serialize().to_vec();
+    Ok(py_utils::to_pybytes(py, &message))
 }
 
 #[pyfunction(name = "finish_registration")]
@@ -83,18 +93,18 @@ fn server_finish_registration(upload: Vec<u8>) -> PyResult<PyServerRegistration>
 }
 
 pub fn register(py: Python<'_>, parent: &Bound<'_, PyModule>) -> PyResult<()> {
-    let module = PyModule::new_bound(py, "registration")?;
+    let module = py_utils::new_submodule(py, parent, "registration")?;
 
-    let client = PyModule::new_bound(py, "client")?;
+    let client = py_utils::new_submodule(py, &module, "client")?;
     client.add_function(wrap_pyfunction!(client_start_registration, &client)?)?;
     client.add_function(wrap_pyfunction!(client_finish_registration, &client)?)?;
-    module.add_submodule(&client)?;
+    py_utils::add_submodule(py, &module, "client", &client)?;
 
-    let server = PyModule::new_bound(py, "server")?;
+    let server = py_utils::new_submodule(py, &module, "server")?;
     server.add_function(wrap_pyfunction!(server_start_registration, &server)?)?;
     server.add_function(wrap_pyfunction!(server_finish_registration, &server)?)?;
-    module.add_submodule(&server)?;
+    py_utils::add_submodule(py, &module, "server", &server)?;
 
-    parent.add_submodule(&module)?;
+    py_utils::add_submodule(py, parent, "registration", &module)?;
     Ok(())
 }

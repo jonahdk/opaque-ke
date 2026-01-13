@@ -4,9 +4,10 @@ use opaque_ke::{
     CredentialResponse, ServerLogin, ServerLoginParameters,
 };
 use pyo3::prelude::*;
-use pyo3::types::PyModule;
+use pyo3::types::{PyBytes, PyModule};
 
 use crate::errors::{invalid_login_err, to_py_err};
+use crate::py_utils;
 use crate::suite::Suite;
 use crate::types::{
     ClientLoginFinishParameters as PyClientLoginFinishParameters, ClientLoginState,
@@ -15,11 +16,15 @@ use crate::types::{
 };
 
 #[pyfunction(name = "start_login")]
-fn client_start_login(password: Vec<u8>) -> PyResult<(Vec<u8>, ClientLoginState)> {
+fn client_start_login(
+    py: Python<'_>,
+    password: Vec<u8>,
+) -> PyResult<(Py<PyBytes>, ClientLoginState)> {
     let mut rng = OsRng;
     let result = ClientLogin::<Suite>::start(&mut rng, &password).map_err(to_py_err)?;
+    let message = result.message.serialize().to_vec();
     Ok((
-        result.message.serialize().to_vec(),
+        py_utils::to_pybytes(py, &message),
         ClientLoginState {
             inner: Some(result.state),
         },
@@ -28,11 +33,12 @@ fn client_start_login(password: Vec<u8>) -> PyResult<(Vec<u8>, ClientLoginState)
 
 #[pyfunction(name = "finish_login")]
 fn client_finish_login(
+    py: Python<'_>,
     mut state: PyRefMut<'_, ClientLoginState>,
     password: Vec<u8>,
     response: Vec<u8>,
     params: Option<PyRef<'_, PyClientLoginFinishParameters>>,
-) -> PyResult<(Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>)> {
+) -> PyResult<(Py<PyBytes>, Py<PyBytes>, Py<PyBytes>, Py<PyBytes>)> {
     let state = state.take()?;
     let response = CredentialResponse::<Suite>::deserialize(&response).map_err(to_py_err)?;
     let mut rng = OsRng;
@@ -68,22 +74,26 @@ fn client_finish_login(
             return Err(invalid_login_err("server public key mismatch"));
         }
     }
+    let message = result.message.serialize().to_vec();
+    let session_key = result.session_key.to_vec();
+    let export_key = result.export_key.to_vec();
     Ok((
-        result.message.serialize().to_vec(),
-        result.session_key.to_vec(),
-        result.export_key.to_vec(),
-        server_s_pk,
+        py_utils::to_pybytes(py, &message),
+        py_utils::to_pybytes(py, &session_key),
+        py_utils::to_pybytes(py, &export_key),
+        py_utils::to_pybytes(py, &server_s_pk),
     ))
 }
 
 #[pyfunction(name = "start_login")]
 fn server_start_login(
+    py: Python<'_>,
     server_setup: PyRef<'_, ServerSetup>,
     password_file: PyRef<'_, ServerRegistration>,
     request: Vec<u8>,
     credential_identifier: Vec<u8>,
     params: Option<PyRef<'_, PyServerLoginParameters>>,
-) -> PyResult<(Vec<u8>, ServerLoginState)> {
+) -> PyResult<(Py<PyBytes>, ServerLoginState)> {
     let request = CredentialRequest::<Suite>::deserialize(&request).map_err(to_py_err)?;
     let mut rng = OsRng;
     let identifiers = params
@@ -113,8 +123,9 @@ fn server_start_login(
         parameters,
     )
     .map_err(to_py_err)?;
+    let message = result.message.serialize().to_vec();
     Ok((
-        result.message.serialize().to_vec(),
+        py_utils::to_pybytes(py, &message),
         ServerLoginState {
             inner: Some(result.state),
         },
@@ -123,10 +134,11 @@ fn server_start_login(
 
 #[pyfunction(name = "finish_login")]
 fn server_finish_login(
+    py: Python<'_>,
     mut state: PyRefMut<'_, ServerLoginState>,
     finalization: Vec<u8>,
     params: Option<PyRef<'_, PyServerLoginParameters>>,
-) -> PyResult<Vec<u8>> {
+) -> PyResult<Py<PyBytes>> {
     let state = state.take()?;
     let finalization =
         CredentialFinalization::<Suite>::deserialize(&finalization).map_err(to_py_err)?;
@@ -149,22 +161,23 @@ fn server_finish_login(
         ServerLoginParameters::default()
     };
     let result = state.finish(finalization, parameters).map_err(to_py_err)?;
-    Ok(result.session_key.to_vec())
+    let session_key = result.session_key.to_vec();
+    Ok(py_utils::to_pybytes(py, &session_key))
 }
 
 pub fn register(py: Python<'_>, parent: &Bound<'_, PyModule>) -> PyResult<()> {
-    let module = PyModule::new_bound(py, "login")?;
+    let module = py_utils::new_submodule(py, parent, "login")?;
 
-    let client = PyModule::new_bound(py, "client")?;
+    let client = py_utils::new_submodule(py, &module, "client")?;
     client.add_function(wrap_pyfunction!(client_start_login, &client)?)?;
     client.add_function(wrap_pyfunction!(client_finish_login, &client)?)?;
-    module.add_submodule(&client)?;
+    py_utils::add_submodule(py, &module, "client", &client)?;
 
-    let server = PyModule::new_bound(py, "server")?;
+    let server = py_utils::new_submodule(py, &module, "server")?;
     server.add_function(wrap_pyfunction!(server_start_login, &server)?)?;
     server.add_function(wrap_pyfunction!(server_finish_login, &server)?)?;
-    module.add_submodule(&server)?;
+    py_utils::add_submodule(py, &module, "server", &server)?;
 
-    parent.add_submodule(&module)?;
+    py_utils::add_submodule(py, parent, "login", &module)?;
     Ok(())
 }

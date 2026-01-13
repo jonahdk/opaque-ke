@@ -5,9 +5,10 @@ use opaque_ke::{
 };
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::types::PyModule;
+use pyo3::types::{PyBytes, PyModule};
 
 use crate::errors::to_py_err;
+use crate::py_utils;
 use crate::suite::{SUITE_NAME, Suite};
 use crate::types::{
     ServerLoginParameters as PyServerLoginParameters, ServerLoginState,
@@ -42,10 +43,11 @@ impl OpaqueServer {
 
     fn start_registration(
         &self,
+        py: Python<'_>,
         server_setup: PyRef<'_, ServerSetup>,
         request: Vec<u8>,
         credential_identifier: Vec<u8>,
-    ) -> PyResult<Vec<u8>> {
+    ) -> PyResult<Py<PyBytes>> {
         let request = RegistrationRequest::<Suite>::deserialize(&request).map_err(to_py_err)?;
         let result = ServerRegistration::<Suite>::start(
             &server_setup.inner,
@@ -53,7 +55,8 @@ impl OpaqueServer {
             &credential_identifier,
         )
         .map_err(to_py_err)?;
-        Ok(result.message.serialize().to_vec())
+        let message = result.message.serialize().to_vec();
+        Ok(py_utils::to_pybytes(py, &message))
     }
 
     fn finish_registration(&self, upload: Vec<u8>) -> PyResult<PyServerRegistration> {
@@ -65,12 +68,13 @@ impl OpaqueServer {
 
     fn start_login(
         &self,
+        py: Python<'_>,
         server_setup: PyRef<'_, ServerSetup>,
         password_file: PyRef<'_, PyServerRegistration>,
         request: Vec<u8>,
         credential_identifier: Vec<u8>,
         params: Option<PyRef<'_, PyServerLoginParameters>>,
-    ) -> PyResult<(Vec<u8>, ServerLoginState)> {
+    ) -> PyResult<(Py<PyBytes>, ServerLoginState)> {
         let request = CredentialRequest::<Suite>::deserialize(&request).map_err(to_py_err)?;
         let mut rng = OsRng;
         let identifiers = params
@@ -100,8 +104,9 @@ impl OpaqueServer {
             parameters,
         )
         .map_err(to_py_err)?;
+        let message = result.message.serialize().to_vec();
         Ok((
-            result.message.serialize().to_vec(),
+            py_utils::to_pybytes(py, &message),
             ServerLoginState {
                 inner: Some(result.state),
             },
@@ -110,10 +115,11 @@ impl OpaqueServer {
 
     fn finish_login(
         &self,
+        py: Python<'_>,
         mut state: PyRefMut<'_, ServerLoginState>,
         finalization: Vec<u8>,
         params: Option<PyRef<'_, PyServerLoginParameters>>,
-    ) -> PyResult<Vec<u8>> {
+    ) -> PyResult<Py<PyBytes>> {
         let state = state.take()?;
         let finalization =
             CredentialFinalization::<Suite>::deserialize(&finalization).map_err(to_py_err)?;
@@ -136,13 +142,14 @@ impl OpaqueServer {
             ServerLoginParameters::default()
         };
         let result = state.finish(finalization, parameters).map_err(to_py_err)?;
-        Ok(result.session_key.to_vec())
+        let session_key = result.session_key.to_vec();
+        Ok(py_utils::to_pybytes(py, &session_key))
     }
 }
 
 pub fn register(py: Python<'_>, parent: &Bound<'_, PyModule>) -> PyResult<()> {
-    let module = PyModule::new_bound(py, "server")?;
+    let module = py_utils::new_submodule(py, parent, "server")?;
     module.add_class::<OpaqueServer>()?;
-    parent.add_submodule(&module)?;
+    py_utils::add_submodule(py, parent, "server", &module)?;
     Ok(())
 }

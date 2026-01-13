@@ -1,9 +1,10 @@
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
 use pyo3::prelude::*;
-use pyo3::types::PyModule;
+use pyo3::types::{PyBytes, PyModule};
 
 use crate::errors::serialization_err;
+use crate::py_utils;
 
 #[pyfunction]
 fn encode_b64(data: Vec<u8>) -> PyResult<String> {
@@ -11,16 +12,17 @@ fn encode_b64(data: Vec<u8>) -> PyResult<String> {
 }
 
 #[pyfunction]
-fn decode_b64(text: &str) -> PyResult<Vec<u8>> {
-    STANDARD
+fn decode_b64(py: Python<'_>, text: &str) -> PyResult<Py<PyBytes>> {
+    let decoded = STANDARD
         .decode(text)
-        .map_err(|err| serialization_err(&err.to_string()))
+        .map_err(|err| serialization_err(&err.to_string()))?;
+    Ok(PyBytes::new_bound(py, &decoded).into())
 }
 
 pub fn register(py: Python<'_>, parent: &Bound<'_, PyModule>) -> PyResult<()> {
-    let module = PyModule::new_bound(py, "encoding")?;
+    let module = py_utils::new_submodule(py, parent, "encoding")?;
     module.add_function(wrap_pyfunction!(encode_b64, &module)?)?;
     module.add_function(wrap_pyfunction!(decode_b64, &module)?)?;
-    parent.add_submodule(&module)?;
+    py_utils::add_submodule(py, parent, "encoding", &module)?;
     Ok(())
 }

@@ -4,6 +4,8 @@ use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
 use pyo3::types::PyModule;
 
+use crate::py_utils;
+
 create_exception!(opaque_ke.errors, OpaqueError, PyException);
 create_exception!(opaque_ke.errors, InvalidLoginError, OpaqueError);
 create_exception!(opaque_ke.errors, InvalidStateError, OpaqueError);
@@ -37,7 +39,7 @@ pub(crate) fn serialization_err(message: &str) -> PyErr {
 }
 
 pub fn register(py: Python<'_>, parent: &Bound<'_, PyModule>) -> PyResult<()> {
-    let module = PyModule::new_bound(py, "errors")?;
+    let module = py_utils::new_submodule(py, parent, "errors")?;
     module.add("OpaqueError", py.get_type_bound::<OpaqueError>())?;
     module.add("InvalidLoginError", py.get_type_bound::<InvalidLoginError>())?;
     module.add("InvalidStateError", py.get_type_bound::<InvalidStateError>())?;
@@ -48,6 +50,6 @@ pub fn register(py: Python<'_>, parent: &Bound<'_, PyModule>) -> PyResult<()> {
         py.get_type_bound::<ReflectedValueError>(),
     )?;
     module.add("LibraryError", py.get_type_bound::<LibraryError>())?;
-    parent.add_submodule(&module)?;
+    py_utils::add_submodule(py, parent, "errors", &module)?;
     Ok(())
 }

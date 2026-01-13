@@ -5,9 +5,10 @@ use opaque_ke::{
 };
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::types::PyModule;
+use pyo3::types::{PyBytes, PyModule};
 
 use crate::errors::{invalid_login_err, to_py_err};
+use crate::py_utils;
 use crate::suite::{SUITE_NAME, Suite};
 use crate::types::{
     ClientLoginFinishParameters as PyClientLoginFinishParameters, ClientLoginState,
@@ -43,12 +44,14 @@ impl OpaqueClient {
 
     fn start_registration(
         &self,
+        py: Python<'_>,
         password: Vec<u8>,
-    ) -> PyResult<(Vec<u8>, ClientRegistrationState)> {
+    ) -> PyResult<(Py<PyBytes>, ClientRegistrationState)> {
         let mut rng = OsRng;
         let result = ClientRegistration::<Suite>::start(&mut rng, &password).map_err(to_py_err)?;
+        let message = result.message.serialize().to_vec();
         Ok((
-            result.message.serialize().to_vec(),
+            py_utils::to_pybytes(py, &message),
             ClientRegistrationState {
                 inner: Some(result.state),
             },
@@ -57,11 +60,12 @@ impl OpaqueClient {
 
     fn finish_registration(
         &self,
+        py: Python<'_>,
         mut state: PyRefMut<'_, ClientRegistrationState>,
         password: Vec<u8>,
         response: Vec<u8>,
         params: Option<PyRef<'_, PyClientRegistrationFinishParameters>>,
-    ) -> PyResult<(Vec<u8>, Vec<u8>)> {
+    ) -> PyResult<(Py<PyBytes>, Py<PyBytes>)> {
         let state = state.take()?;
         let response = RegistrationResponse::<Suite>::deserialize(&response).map_err(to_py_err)?;
         let mut rng = OsRng;
@@ -85,17 +89,24 @@ impl OpaqueClient {
         let result = state
             .finish(&mut rng, &password, response, finish_params)
             .map_err(to_py_err)?;
+        let message = result.message.serialize().to_vec();
+        let export_key = result.export_key.to_vec();
         Ok((
-            result.message.serialize().to_vec(),
-            result.export_key.to_vec(),
+            py_utils::to_pybytes(py, &message),
+            py_utils::to_pybytes(py, &export_key),
         ))
     }
 
-    fn start_login(&self, password: Vec<u8>) -> PyResult<(Vec<u8>, ClientLoginState)> {
+    fn start_login(
+        &self,
+        py: Python<'_>,
+        password: Vec<u8>,
+    ) -> PyResult<(Py<PyBytes>, ClientLoginState)> {
         let mut rng = OsRng;
         let result = ClientLogin::<Suite>::start(&mut rng, &password).map_err(to_py_err)?;
+        let message = result.message.serialize().to_vec();
         Ok((
-            result.message.serialize().to_vec(),
+            py_utils::to_pybytes(py, &message),
             ClientLoginState {
                 inner: Some(result.state),
             },
@@ -104,11 +115,12 @@ impl OpaqueClient {
 
     fn finish_login(
         &self,
+        py: Python<'_>,
         mut state: PyRefMut<'_, ClientLoginState>,
         password: Vec<u8>,
         response: Vec<u8>,
         params: Option<PyRef<'_, PyClientLoginFinishParameters>>,
-    ) -> PyResult<(Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>)> {
+    ) -> PyResult<(Py<PyBytes>, Py<PyBytes>, Py<PyBytes>, Py<PyBytes>)> {
         let state = state.take()?;
         let response = CredentialResponse::<Suite>::deserialize(&response).map_err(to_py_err)?;
         let mut rng = OsRng;
@@ -144,11 +156,14 @@ impl OpaqueClient {
                 return Err(invalid_login_err("server public key mismatch"));
             }
         }
+        let message = result.message.serialize().to_vec();
+        let session_key = result.session_key.to_vec();
+        let export_key = result.export_key.to_vec();
         Ok((
-            result.message.serialize().to_vec(),
-            result.session_key.to_vec(),
-            result.export_key.to_vec(),
-            server_s_pk,
+            py_utils::to_pybytes(py, &message),
+            py_utils::to_pybytes(py, &session_key),
+            py_utils::to_pybytes(py, &export_key),
+            py_utils::to_pybytes(py, &server_s_pk),
         ))
     }
 
@@ -163,8 +178,8 @@ impl OpaqueClient {
 }
 
 pub fn register(py: Python<'_>, parent: &Bound<'_, PyModule>) -> PyResult<()> {
-    let module = PyModule::new_bound(py, "client")?;
+    let module = py_utils::new_submodule(py, parent, "client")?;
     module.add_class::<OpaqueClient>()?;
-    parent.add_submodule(&module)?;
+    py_utils::add_submodule(py, parent, "client", &module)?;
     Ok(())
 }

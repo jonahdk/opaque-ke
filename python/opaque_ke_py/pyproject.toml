@@ -3,9 +3,19 @@ requires = ["maturin>=1.4"]
 build-backend = "maturin"
 
 [project]
-name = "opaque-ke"
+name = "opaque_ke"
 requires-python = ">=3.9"
 dynamic = ["version"]
 
+[project.optional-dependencies]
+test = ["pytest>=7"]
+
 [tool.maturin]
 bindings = "pyo3"
+module-name = "opaque_ke"
+python-source = "python"
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra"
+testpaths = ["tests"]

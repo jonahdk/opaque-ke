@@ -203,7 +203,7 @@ features = ["std", "ristretto255", "argon2", "serde"]
 1: ~~Scaffold bindings crate, minimal PyO3 module layout, and build config (maturin/pyproject).~~
 2: ~~Implement minimal API (Ristretto255 + SHA-512), registration/login flows, and serialization.~~
 3: ~~Error mapping, parameter objects, context support, state handling, and encoding helpers.~~
-4: Cross-stack JS interop tests + pytest suite + docs polish.
+4: ~~Cross-stack JS interop tests + pytest suite + docs polish.~~
 5: Expand suites (P-256/P-384/P-521, KEM if enabled), wheels for 3.9–3.13, CI packaging.
 
 # NOTES

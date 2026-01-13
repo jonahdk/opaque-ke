@@ -6,9 +6,10 @@ use opaque_ke::{
 };
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::types::PyModule;
+use pyo3::types::{PyBytes, PyModule};
 
 use crate::errors::{invalid_state_err, to_py_err};
+use crate::py_utils;
 use crate::suite::Suite;
 
 #[pyclass(unsendable)]
@@ -249,8 +250,9 @@ impl ServerSetup {
         Ok(Self { inner })
     }
 
-    fn serialize(&self) -> Vec<u8> {
-        self.inner.serialize().to_vec()
+    fn serialize(&self, py: Python<'_>) -> Py<PyBytes> {
+        let serialized = self.inner.serialize().to_vec();
+        py_utils::to_pybytes(py, &serialized)
     }
 }
 
@@ -267,8 +269,9 @@ impl ServerRegistration {
         Ok(Self { inner })
     }
 
-    fn serialize(&self) -> PyResult<Vec<u8>> {
-        Ok(self.inner.serialize().to_vec())
+    fn serialize(&self, py: Python<'_>) -> PyResult<Py<PyBytes>> {
+        let serialized = self.inner.serialize().to_vec();
+        Ok(py_utils::to_pybytes(py, &serialized))
     }
 }
 
@@ -293,12 +296,13 @@ impl ClientRegistrationState {
         Ok(Self { inner: Some(inner) })
     }
 
-    fn serialize(&self) -> PyResult<Vec<u8>> {
+    fn serialize(&self, py: Python<'_>) -> PyResult<Py<PyBytes>> {
         let inner = self
             .inner
             .as_ref()
             .ok_or_else(|| invalid_state_err("ClientRegistrationState has already been used"))?;
-        Ok(inner.serialize().to_vec())
+        let serialized = inner.serialize().to_vec();
+        Ok(py_utils::to_pybytes(py, &serialized))
     }
 }
 
@@ -323,12 +327,13 @@ impl ClientLoginState {
         Ok(Self { inner: Some(inner) })
     }
 
-    fn serialize(&self) -> PyResult<Vec<u8>> {
+    fn serialize(&self, py: Python<'_>) -> PyResult<Py<PyBytes>> {
         let inner = self
             .inner
             .as_ref()
             .ok_or_else(|| invalid_state_err("ClientLoginState has already been used"))?;
-        Ok(inner.serialize().to_vec())
+        let serialized = inner.serialize().to_vec();
+        Ok(py_utils::to_pybytes(py, &serialized))
     }
 }
 
@@ -353,17 +358,18 @@ impl ServerLoginState {
         Ok(Self { inner: Some(inner) })
     }
 
-    fn serialize(&self) -> PyResult<Vec<u8>> {
+    fn serialize(&self, py: Python<'_>) -> PyResult<Py<PyBytes>> {
         let inner = self
             .inner
             .as_ref()
             .ok_or_else(|| invalid_state_err("ServerLoginState has already been used"))?;
-        Ok(inner.serialize().to_vec())
+        let serialized = inner.serialize().to_vec();
+        Ok(py_utils::to_pybytes(py, &serialized))
     }
 }
 
 pub fn register(py: Python<'_>, parent: &Bound<'_, PyModule>) -> PyResult<()> {
-    let module = PyModule::new_bound(py, "types")?;
+    let module = py_utils::new_submodule(py, parent, "types")?;
     module.add_class::<Identifiers>()?;
     module.add_class::<Argon2Params>()?;
     module.add_class::<KeyStretching>()?;
@@ -375,6 +381,6 @@ pub fn register(py: Python<'_>, parent: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<ClientRegistrationState>()?;
     module.add_class::<ClientLoginState>()?;
     module.add_class::<ServerLoginState>()?;
-    parent.add_submodule(&module)?;
+    py_utils::add_submodule(py, parent, "types", &module)?;
     Ok(())
 }

@@ -1,0 +1,8 @@
+{
+  "name": "opaque-ke-js-interop",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@serenity-kit/opaque": "*"
+  }
+}

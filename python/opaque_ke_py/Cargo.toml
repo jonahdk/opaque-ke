@@ -1,30 +1,45 @@
 [package]
-name = "opaque-ke-py"
-version = "0.1.1"
-edition = "2024"
-license = "Apache-2.0 OR MIT"
-description = "Python bindings for opaque-ke"
-repository = "https://github.com/jonahdk/opaque-ke"
-readme = "README.md"
-keywords = ["cryptography", "opaque", "passwords", "authentication", "python"]
 categories = ["cryptography"]
+description = "Python bindings for opaque-ke"
+edition = "2024"
+keywords = ["cryptography", "opaque", "passwords", "authentication", "python"]
+license = "Apache-2.0 OR MIT"
+name = "opaque-ke-py"
+readme = "README.md"
+repository = "https://github.com/jonahdk/opaque-ke"
+version = "0.1.1"
 
 [lib]
-name = "opaque_ke"
 crate-type = ["cdylib"]
+name = "opaque_ke"
 
 [features]
-default = ["std", "ristretto255", "argon2", "serde"]
-std = ["opaque-ke/std"]
-ristretto255 = ["opaque-ke/ristretto255"]
 argon2 = ["opaque-ke/argon2"]
+default = ["std", "ristretto255", "argon2", "serde"]
+ristretto255 = ["opaque-ke/ristretto255"]
 serde = ["opaque-ke/serde"]
+std = ["opaque-ke/std"]
 
 [dependencies]
 base64 = { version = "0.22", default-features = false, features = ["alloc"] }
+opaque-ke = { path = "../..", default-features = false, features = [
+  "std",
+  "ristretto255",
+  "argon2",
+  "serde",
+  "kem",
+] }
+p256 = { version = "0.13", default-features = false, features = [
+  "hash2curve",
+  "voprf",
+] }
+p384 = { version = "0.13", default-features = false, features = [
+  "hash2curve",
+  "voprf",
+] }
+p521 = { version = "0.13.3", default-features = false, features = [
+  "hash2curve",
+  "voprf",
+] }
 pyo3 = { version = "0.21", features = ["extension-module"] }
-opaque-ke = { path = "../..", default-features = false, features = ["std", "ristretto255", "argon2", "serde", "kem"] }
 sha2 = { version = "0.10", default-features = false }
-p256 = { version = "0.13", default-features = false, features = ["hash2curve", "voprf"] }
-p384 = { version = "0.13", default-features = false, features = ["hash2curve", "voprf"] }
-p521 = { version = "0.13.3", default-features = false, features = ["hash2curve", "voprf"] }

@@ -127,17 +127,20 @@ fn client_finish_registration(
         .and_then(|params| params.key_stretching())
         .map(|ksf| ksf.build_ksf())
         .transpose()?;
-    let finish_params = if params.is_some() {
-        ClientRegistrationFinishParameters::new(opaque_identifiers, ksf.as_ref())
-    } else {
-        ClientRegistrationFinishParameters::default()
-    };
     let mut rng = OsRng;
     match state_suite {
         SuiteId::Ristretto255Sha512 => {
             let state = state.take_ristretto()?;
             let response = RegistrationResponse::<Ristretto255Sha512>::deserialize(&response)
                 .map_err(to_py_err)?;
+            let finish_params = if params.is_some() {
+                ClientRegistrationFinishParameters::<Ristretto255Sha512>::new(
+                    opaque_identifiers,
+                    ksf.as_ref(),
+                )
+            } else {
+                ClientRegistrationFinishParameters::<Ristretto255Sha512>::default()
+            };
             let result = state
                 .finish(&mut rng, &password, response, finish_params)
                 .map_err(to_py_err)?;
@@ -152,6 +155,14 @@ fn client_finish_registration(
             let state = state.take_p256()?;
             let response =
                 RegistrationResponse::<P256Sha256>::deserialize(&response).map_err(to_py_err)?;
+            let finish_params = if params.is_some() {
+                ClientRegistrationFinishParameters::<P256Sha256>::new(
+                    opaque_identifiers,
+                    ksf.as_ref(),
+                )
+            } else {
+                ClientRegistrationFinishParameters::<P256Sha256>::default()
+            };
             let result = state
                 .finish(&mut rng, &password, response, finish_params)
                 .map_err(to_py_err)?;
@@ -166,6 +177,14 @@ fn client_finish_registration(
             let state = state.take_p384()?;
             let response =
                 RegistrationResponse::<P384Sha384>::deserialize(&response).map_err(to_py_err)?;
+            let finish_params = if params.is_some() {
+                ClientRegistrationFinishParameters::<P384Sha384>::new(
+                    opaque_identifiers,
+                    ksf.as_ref(),
+                )
+            } else {
+                ClientRegistrationFinishParameters::<P384Sha384>::default()
+            };
             let result = state
                 .finish(&mut rng, &password, response, finish_params)
                 .map_err(to_py_err)?;
@@ -180,6 +199,14 @@ fn client_finish_registration(
             let state = state.take_p521()?;
             let response =
                 RegistrationResponse::<P521Sha512>::deserialize(&response).map_err(to_py_err)?;
+            let finish_params = if params.is_some() {
+                ClientRegistrationFinishParameters::<P521Sha512>::new(
+                    opaque_identifiers,
+                    ksf.as_ref(),
+                )
+            } else {
+                ClientRegistrationFinishParameters::<P521Sha512>::default()
+            };
             let result = state
                 .finish(&mut rng, &password, response, finish_params)
                 .map_err(to_py_err)?;
@@ -195,6 +222,14 @@ fn client_finish_registration(
             let response =
                 RegistrationResponse::<MlKem768Ristretto255Sha512>::deserialize(&response)
                     .map_err(to_py_err)?;
+            let finish_params = if params.is_some() {
+                ClientRegistrationFinishParameters::<MlKem768Ristretto255Sha512>::new(
+                    opaque_identifiers,
+                    ksf.as_ref(),
+                )
+            } else {
+                ClientRegistrationFinishParameters::<MlKem768Ristretto255Sha512>::default()
+            };
             let result = state
                 .finish(&mut rng, &password, response, finish_params)
                 .map_err(to_py_err)?;

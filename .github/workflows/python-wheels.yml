@@ -139,14 +139,22 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ (matrix.python-version == '3.13' || matrix.python-version == '3.14') && '3.12' || matrix.python-version }}
+          cache: 'pip'
+
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: ${{ (matrix.python-version == '3.13' || matrix.python-version == '3.14') && '3.12' || matrix.python-version }}
           working-directory: python/opaque_ke_py
           target: ${{ matrix.target }}
           manylinux: ${{ matrix.manylinux }}
-          args: --release --out dist
+          args: >-
+            --release --out dist
+            ${{ (matrix.python-version == '3.13' || matrix.python-version == '3.14') && format('--interpreter python{0}', matrix.python-version) || '' }}
 
       - name: Upload wheel artifacts
         uses: actions/upload-artifact@v4
@@ -166,9 +174,16 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+          cache: 'pip'
+
       - name: Build sdist
         uses: PyO3/maturin-action@v1
         with:
+          python-version: "3.12"
           working-directory: python/opaque_ke_py
           args: --sdist --out dist
 

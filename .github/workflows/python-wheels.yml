@@ -23,117 +23,17 @@ jobs:
             python-version: "3.9"
             target: aarch64-unknown-linux-gnu
             manylinux: auto
-          - os: ubuntu-latest
-            python-version: "3.10"
-            target: x86_64-unknown-linux-gnu
-            manylinux: auto
-          - os: ubuntu-latest
-            python-version: "3.10"
-            target: aarch64-unknown-linux-gnu
-            manylinux: auto
-          - os: ubuntu-latest
-            python-version: "3.11"
-            target: x86_64-unknown-linux-gnu
-            manylinux: auto
-          - os: ubuntu-latest
-            python-version: "3.11"
-            target: aarch64-unknown-linux-gnu
-            manylinux: auto
-          - os: ubuntu-latest
-            python-version: "3.12"
-            target: x86_64-unknown-linux-gnu
-            manylinux: auto
-          - os: ubuntu-latest
-            python-version: "3.12"
-            target: aarch64-unknown-linux-gnu
-            manylinux: auto
-          - os: ubuntu-latest
-            python-version: "3.13"
-            target: x86_64-unknown-linux-gnu
-            manylinux: auto
-          - os: ubuntu-latest
-            python-version: "3.13"
-            target: aarch64-unknown-linux-gnu
-            manylinux: auto
-          - os: ubuntu-latest
-            python-version: "3.14"
-            target: x86_64-unknown-linux-gnu
-            manylinux: auto
-          - os: ubuntu-latest
-            python-version: "3.14"
-            target: aarch64-unknown-linux-gnu
-            manylinux: auto
           - os: windows-latest
             python-version: "3.9"
             target: x86_64-pc-windows-msvc
           - os: windows-latest
-            python-version: "3.10"
-            target: x86_64-pc-windows-msvc
-          - os: windows-latest
-            python-version: "3.11"
-            target: x86_64-pc-windows-msvc
-          - os: windows-latest
-            python-version: "3.12"
-            target: x86_64-pc-windows-msvc
-          - os: windows-latest
-            python-version: "3.13"
-            target: x86_64-pc-windows-msvc
-          - os: windows-latest
-            python-version: "3.14"
-            target: x86_64-pc-windows-msvc
-          - os: windows-latest
             python-version: "3.9"
-            target: aarch64-pc-windows-msvc
-          - os: windows-latest
-            python-version: "3.10"
-            target: aarch64-pc-windows-msvc
-          - os: windows-latest
-            python-version: "3.11"
-            target: aarch64-pc-windows-msvc
-          - os: windows-latest
-            python-version: "3.12"
-            target: aarch64-pc-windows-msvc
-          - os: windows-latest
-            python-version: "3.13"
-            target: aarch64-pc-windows-msvc
-          - os: windows-latest
-            python-version: "3.14"
             target: aarch64-pc-windows-msvc
           - os: macos-13
             python-version: "3.9"
             target: x86_64-apple-darwin
-          - os: macos-13
-            python-version: "3.10"
-            target: x86_64-apple-darwin
-          - os: macos-13
-            python-version: "3.11"
-            target: x86_64-apple-darwin
-          - os: macos-13
-            python-version: "3.12"
-            target: x86_64-apple-darwin
-          - os: macos-13
-            python-version: "3.13"
-            target: x86_64-apple-darwin
-          - os: macos-13
-            python-version: "3.14"
-            target: x86_64-apple-darwin
           - os: macos-14
             python-version: "3.9"
-            target: aarch64-apple-darwin
-          - os: macos-14
-            python-version: "3.10"
-            target: aarch64-apple-darwin
-          - os: macos-14
-            python-version: "3.11"
-            target: aarch64-apple-darwin
-          - os: macos-14
-            python-version: "3.12"
-            target: aarch64-apple-darwin
-          - os: macos-14
-            python-version: "3.13"
-            target: aarch64-apple-darwin
-          - os: macos-14
-            python-version: "3.14"
             target: aarch64-apple-darwin
     steps:
       - name: Checkout sources
@@ -148,13 +48,11 @@ jobs:
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
-          python-version: ${{ (matrix.python-version == '3.13' || matrix.python-version == '3.14') && '3.12' || matrix.python-version }}
+          python-version: ${{ matrix.python-version }}
           working-directory: python/opaque_ke_py
           target: ${{ matrix.target }}
           manylinux: ${{ matrix.manylinux }}
-          args: >-
-            --release --out dist
-            ${{ (matrix.python-version == '3.13' || matrix.python-version == '3.14') && format('-- --interpreter python{0}', matrix.python-version) || '' }}
+          args: --release --out dist
 
       - name: Upload wheel artifacts
         uses: actions/upload-artifact@v4
@@ -177,13 +75,13 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.12"
+          python-version: "3.9"
           cache: 'pip'
 
       - name: Build sdist
         uses: PyO3/maturin-action@v1
         with:
-          python-version: "3.12"
+          python-version: "3.9"
           working-directory: python/opaque_ke_py
           args: --sdist --out dist
 

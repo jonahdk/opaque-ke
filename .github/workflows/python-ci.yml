@@ -26,18 +26,15 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Create venv
-        run: python -m venv python/opaque_ke_py/.venv
-
       - name: Install Python deps
         run: |
-          python/opaque_ke_py/.venv/bin/python -m pip install -U pip
-          python/opaque_ke_py/.venv/bin/python -m pip install maturin pytest
+          python -m pip install -U pip
+          python -m pip install maturin pytest
 
       - name: Build extension (maturin develop)
-        run: python/opaque_ke_py/.venv/bin/python -m maturin develop
+        run: python -m maturin develop
         working-directory: python/opaque_ke_py
 
       - name: Run pytest
-        run: python/opaque_ke_py/.venv/bin/python -m pytest
+        run: python -m pytest
         working-directory: python/opaque_ke_py

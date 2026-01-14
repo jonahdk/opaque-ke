@@ -13,8 +13,18 @@ categories = ["cryptography"]
 name = "opaque_ke"
 crate-type = ["cdylib"]
 
+[features]
+default = ["std", "ristretto255", "argon2", "serde"]
+std = ["opaque-ke/std"]
+ristretto255 = ["opaque-ke/ristretto255"]
+argon2 = ["opaque-ke/argon2"]
+serde = ["opaque-ke/serde"]
+
 [dependencies]
 base64 = { version = "0.22", default-features = false, features = ["alloc"] }
 pyo3 = { version = "0.21", features = ["extension-module"] }
-opaque-ke = { path = "../..", default-features = false, features = ["std", "ristretto255", "argon2", "serde"] }
+opaque-ke = { path = "../..", default-features = false, features = ["std", "ristretto255", "argon2", "serde", "kem"] }
 sha2 = { version = "0.10", default-features = false }
+p256 = { version = "0.13", default-features = false, features = ["hash2curve", "voprf"] }
+p384 = { version = "0.13", default-features = false, features = ["hash2curve", "voprf"] }
+p521 = { version = "0.13.3", default-features = false, features = ["hash2curve", "voprf"] }

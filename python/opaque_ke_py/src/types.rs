@@ -10,7 +10,11 @@ use pyo3::types::{PyBytes, PyModule};
 
 use crate::errors::{invalid_state_err, to_py_err};
 use crate::py_utils;
-use crate::suite::Suite;
+use crate::suite::{parse_suite, Ristretto255Sha512, SuiteId};
+use crate::suite::MlKem768Ristretto255Sha512;
+use crate::suite::P256Sha256;
+use crate::suite::P384Sha384;
+use crate::suite::P521Sha512;
 
 #[pyclass(unsendable)]
 #[derive(Clone)]
@@ -229,142 +233,629 @@ impl ClientLoginFinishParameters {
     }
 }
 
+pub(crate) enum ServerSetupInner {
+    Ristretto255Sha512(OpaqueServerSetup<Ristretto255Sha512>),
+    P256Sha256(OpaqueServerSetup<P256Sha256>),
+    P384Sha384(OpaqueServerSetup<P384Sha384>),
+    P521Sha512(OpaqueServerSetup<P521Sha512>),
+    MlKem768Ristretto255Sha512(OpaqueServerSetup<MlKem768Ristretto255Sha512>),
+}
+
+impl ServerSetupInner {
+    fn suite_id(&self) -> SuiteId {
+        match self {
+            ServerSetupInner::Ristretto255Sha512(_) => SuiteId::Ristretto255Sha512,
+            ServerSetupInner::P256Sha256(_) => SuiteId::P256Sha256,
+            ServerSetupInner::P384Sha384(_) => SuiteId::P384Sha384,
+            ServerSetupInner::P521Sha512(_) => SuiteId::P521Sha512,
+            ServerSetupInner::MlKem768Ristretto255Sha512(_) => {
+                SuiteId::MlKem768Ristretto255Sha512
+            }
+        }
+    }
+}
+
 #[pyclass(unsendable)]
 pub struct ServerSetup {
-    pub(crate) inner: OpaqueServerSetup<Suite>,
+    pub(crate) inner: ServerSetupInner,
 }
 
 #[pymethods]
 impl ServerSetup {
     #[new]
-    fn new() -> PyResult<Self> {
+    fn new(suite: Option<&str>) -> PyResult<Self> {
+        let suite = parse_suite(suite)?;
         let mut rng = OsRng;
-        Ok(Self {
-            inner: OpaqueServerSetup::<Suite>::new(&mut rng),
-        })
+        let inner = match suite {
+            SuiteId::Ristretto255Sha512 => {
+                ServerSetupInner::Ristretto255Sha512(OpaqueServerSetup::<Ristretto255Sha512>::new(
+                    &mut rng,
+                ))
+            }
+            SuiteId::P256Sha256 => {
+                ServerSetupInner::P256Sha256(OpaqueServerSetup::<P256Sha256>::new(&mut rng))
+            }
+            SuiteId::P384Sha384 => {
+                ServerSetupInner::P384Sha384(OpaqueServerSetup::<P384Sha384>::new(&mut rng))
+            }
+            SuiteId::P521Sha512 => {
+                ServerSetupInner::P521Sha512(OpaqueServerSetup::<P521Sha512>::new(&mut rng))
+            }
+            SuiteId::MlKem768Ristretto255Sha512 => {
+                ServerSetupInner::MlKem768Ristretto255Sha512(
+                    OpaqueServerSetup::<MlKem768Ristretto255Sha512>::new(&mut rng),
+                )
+            }
+        };
+        Ok(Self { inner })
     }
 
     #[staticmethod]
-    fn deserialize(data: Vec<u8>) -> PyResult<Self> {
-        let inner = OpaqueServerSetup::<Suite>::deserialize(&data).map_err(to_py_err)?;
+    #[pyo3(signature = (data, suite=None))]
+    fn deserialize(data: Vec<u8>, suite: Option<&str>) -> PyResult<Self> {
+        let suite = parse_suite(suite)?;
+        let inner = match suite {
+            SuiteId::Ristretto255Sha512 => ServerSetupInner::Ristretto255Sha512(
+                OpaqueServerSetup::<Ristretto255Sha512>::deserialize(&data).map_err(to_py_err)?,
+            ),
+            SuiteId::P256Sha256 => ServerSetupInner::P256Sha256(
+                OpaqueServerSetup::<P256Sha256>::deserialize(&data).map_err(to_py_err)?,
+            ),
+            SuiteId::P384Sha384 => ServerSetupInner::P384Sha384(
+                OpaqueServerSetup::<P384Sha384>::deserialize(&data).map_err(to_py_err)?,
+            ),
+            SuiteId::P521Sha512 => ServerSetupInner::P521Sha512(
+                OpaqueServerSetup::<P521Sha512>::deserialize(&data).map_err(to_py_err)?,
+            ),
+            SuiteId::MlKem768Ristretto255Sha512 => {
+                ServerSetupInner::MlKem768Ristretto255Sha512(
+                    OpaqueServerSetup::<MlKem768Ristretto255Sha512>::deserialize(&data)
+                        .map_err(to_py_err)?,
+                )
+            }
+        };
         Ok(Self { inner })
     }
 
     fn serialize(&self, py: Python<'_>) -> Py<PyBytes> {
-        let serialized = self.inner.serialize().to_vec();
+        let serialized = match &self.inner {
+            ServerSetupInner::Ristretto255Sha512(inner) => inner.serialize().to_vec(),
+            ServerSetupInner::P256Sha256(inner) => inner.serialize().to_vec(),
+            ServerSetupInner::P384Sha384(inner) => inner.serialize().to_vec(),
+            ServerSetupInner::P521Sha512(inner) => inner.serialize().to_vec(),
+            ServerSetupInner::MlKem768Ristretto255Sha512(inner) => inner.serialize().to_vec(),
+        };
         py_utils::to_pybytes(py, &serialized)
+    }
+}
+
+impl ServerSetup {
+    pub(crate) fn suite_id(&self) -> SuiteId {
+        self.inner.suite_id()
+    }
+}
+
+pub(crate) enum ServerRegistrationInner {
+    Ristretto255Sha512(OpaqueServerRegistration<Ristretto255Sha512>),
+    P256Sha256(OpaqueServerRegistration<P256Sha256>),
+    P384Sha384(OpaqueServerRegistration<P384Sha384>),
+    P521Sha512(OpaqueServerRegistration<P521Sha512>),
+    MlKem768Ristretto255Sha512(OpaqueServerRegistration<MlKem768Ristretto255Sha512>),
+}
+
+impl ServerRegistrationInner {
+    fn suite_id(&self) -> SuiteId {
+        match self {
+            ServerRegistrationInner::Ristretto255Sha512(_) => SuiteId::Ristretto255Sha512,
+            ServerRegistrationInner::P256Sha256(_) => SuiteId::P256Sha256,
+            ServerRegistrationInner::P384Sha384(_) => SuiteId::P384Sha384,
+            ServerRegistrationInner::P521Sha512(_) => SuiteId::P521Sha512,
+            ServerRegistrationInner::MlKem768Ristretto255Sha512(_) => {
+                SuiteId::MlKem768Ristretto255Sha512
+            }
+        }
     }
 }
 
 #[pyclass(unsendable)]
 pub struct ServerRegistration {
-    pub(crate) inner: OpaqueServerRegistration<Suite>,
+    pub(crate) inner: ServerRegistrationInner,
 }
 
 #[pymethods]
 impl ServerRegistration {
     #[staticmethod]
-    fn deserialize(data: Vec<u8>) -> PyResult<Self> {
-        let inner = OpaqueServerRegistration::<Suite>::deserialize(&data).map_err(to_py_err)?;
+    #[pyo3(signature = (data, suite=None))]
+    fn deserialize(data: Vec<u8>, suite: Option<&str>) -> PyResult<Self> {
+        let suite = parse_suite(suite)?;
+        let inner = match suite {
+            SuiteId::Ristretto255Sha512 => ServerRegistrationInner::Ristretto255Sha512(
+                OpaqueServerRegistration::<Ristretto255Sha512>::deserialize(&data)
+                    .map_err(to_py_err)?,
+            ),
+            SuiteId::P256Sha256 => ServerRegistrationInner::P256Sha256(
+                OpaqueServerRegistration::<P256Sha256>::deserialize(&data).map_err(to_py_err)?,
+            ),
+            SuiteId::P384Sha384 => ServerRegistrationInner::P384Sha384(
+                OpaqueServerRegistration::<P384Sha384>::deserialize(&data).map_err(to_py_err)?,
+            ),
+            SuiteId::P521Sha512 => ServerRegistrationInner::P521Sha512(
+                OpaqueServerRegistration::<P521Sha512>::deserialize(&data).map_err(to_py_err)?,
+            ),
+            SuiteId::MlKem768Ristretto255Sha512 => {
+                ServerRegistrationInner::MlKem768Ristretto255Sha512(
+                    OpaqueServerRegistration::<MlKem768Ristretto255Sha512>::deserialize(&data)
+                        .map_err(to_py_err)?,
+                )
+            }
+        };
         Ok(Self { inner })
     }
 
     fn serialize(&self, py: Python<'_>) -> PyResult<Py<PyBytes>> {
-        let serialized = self.inner.serialize().to_vec();
+        let serialized = match &self.inner {
+            ServerRegistrationInner::Ristretto255Sha512(inner) => inner.serialize().to_vec(),
+            ServerRegistrationInner::P256Sha256(inner) => inner.serialize().to_vec(),
+            ServerRegistrationInner::P384Sha384(inner) => inner.serialize().to_vec(),
+            ServerRegistrationInner::P521Sha512(inner) => inner.serialize().to_vec(),
+            ServerRegistrationInner::MlKem768Ristretto255Sha512(inner) => inner.serialize().to_vec(),
+        };
         Ok(py_utils::to_pybytes(py, &serialized))
+    }
+}
+
+impl ServerRegistration {
+    pub(crate) fn suite_id(&self) -> SuiteId {
+        self.inner.suite_id()
+    }
+}
+
+pub(crate) enum ClientRegistrationStateInner {
+    Ristretto255Sha512(Option<ClientRegistration<Ristretto255Sha512>>),
+    P256Sha256(Option<ClientRegistration<P256Sha256>>),
+    P384Sha384(Option<ClientRegistration<P384Sha384>>),
+    P521Sha512(Option<ClientRegistration<P521Sha512>>),
+    MlKem768Ristretto255Sha512(Option<ClientRegistration<MlKem768Ristretto255Sha512>>),
+}
+
+impl ClientRegistrationStateInner {
+    fn suite_id(&self) -> SuiteId {
+        match self {
+            ClientRegistrationStateInner::Ristretto255Sha512(_) => SuiteId::Ristretto255Sha512,
+            ClientRegistrationStateInner::P256Sha256(_) => SuiteId::P256Sha256,
+            ClientRegistrationStateInner::P384Sha384(_) => SuiteId::P384Sha384,
+            ClientRegistrationStateInner::P521Sha512(_) => SuiteId::P521Sha512,
+            ClientRegistrationStateInner::MlKem768Ristretto255Sha512(_) => {
+                SuiteId::MlKem768Ristretto255Sha512
+            }
+        }
     }
 }
 
 #[pyclass(unsendable)]
 pub struct ClientRegistrationState {
-    pub(crate) inner: Option<ClientRegistration<Suite>>,
-}
-
-impl ClientRegistrationState {
-    pub(crate) fn take(&mut self) -> PyResult<ClientRegistration<Suite>> {
-        self.inner
-            .take()
-            .ok_or_else(|| invalid_state_err("ClientRegistrationState has already been used"))
-    }
+    pub(crate) inner: ClientRegistrationStateInner,
 }
 
 #[pymethods]
 impl ClientRegistrationState {
     #[staticmethod]
-    fn deserialize(data: Vec<u8>) -> PyResult<Self> {
-        let inner = ClientRegistration::<Suite>::deserialize(&data).map_err(to_py_err)?;
-        Ok(Self { inner: Some(inner) })
+    #[pyo3(signature = (data, suite=None))]
+    fn deserialize(data: Vec<u8>, suite: Option<&str>) -> PyResult<Self> {
+        let suite = parse_suite(suite)?;
+        let inner = match suite {
+            SuiteId::Ristretto255Sha512 => ClientRegistrationStateInner::Ristretto255Sha512(
+                Some(ClientRegistration::<Ristretto255Sha512>::deserialize(&data).map_err(to_py_err)?),
+            ),
+            SuiteId::P256Sha256 => ClientRegistrationStateInner::P256Sha256(
+                Some(ClientRegistration::<P256Sha256>::deserialize(&data).map_err(to_py_err)?),
+            ),
+            SuiteId::P384Sha384 => ClientRegistrationStateInner::P384Sha384(
+                Some(ClientRegistration::<P384Sha384>::deserialize(&data).map_err(to_py_err)?),
+            ),
+            SuiteId::P521Sha512 => ClientRegistrationStateInner::P521Sha512(
+                Some(ClientRegistration::<P521Sha512>::deserialize(&data).map_err(to_py_err)?),
+            ),
+            SuiteId::MlKem768Ristretto255Sha512 => {
+                ClientRegistrationStateInner::MlKem768Ristretto255Sha512(Some(
+                    ClientRegistration::<MlKem768Ristretto255Sha512>::deserialize(&data)
+                        .map_err(to_py_err)?,
+                ))
+            }
+        };
+        Ok(Self { inner })
     }
 
     fn serialize(&self, py: Python<'_>) -> PyResult<Py<PyBytes>> {
-        let inner = self
-            .inner
-            .as_ref()
-            .ok_or_else(|| invalid_state_err("ClientRegistrationState has already been used"))?;
-        let serialized = inner.serialize().to_vec();
+        let serialized = match &self.inner {
+            ClientRegistrationStateInner::Ristretto255Sha512(inner) => inner
+                .as_ref()
+                .ok_or_else(|| invalid_state_err("ClientRegistrationState has already been used"))?
+                .serialize()
+                .to_vec(),
+            ClientRegistrationStateInner::P256Sha256(inner) => inner
+                .as_ref()
+                .ok_or_else(|| invalid_state_err("ClientRegistrationState has already been used"))?
+                .serialize()
+                .to_vec(),
+            ClientRegistrationStateInner::P384Sha384(inner) => inner
+                .as_ref()
+                .ok_or_else(|| invalid_state_err("ClientRegistrationState has already been used"))?
+                .serialize()
+                .to_vec(),
+            ClientRegistrationStateInner::P521Sha512(inner) => inner
+                .as_ref()
+                .ok_or_else(|| invalid_state_err("ClientRegistrationState has already been used"))?
+                .serialize()
+                .to_vec(),
+            ClientRegistrationStateInner::MlKem768Ristretto255Sha512(inner) => inner
+                .as_ref()
+                .ok_or_else(|| invalid_state_err("ClientRegistrationState has already been used"))?
+                .serialize()
+                .to_vec(),
+        };
         Ok(py_utils::to_pybytes(py, &serialized))
+    }
+}
+
+impl ClientRegistrationState {
+    pub(crate) fn suite_id(&self) -> SuiteId {
+        self.inner.suite_id()
+    }
+
+    pub(crate) fn take_ristretto(&mut self) -> PyResult<ClientRegistration<Ristretto255Sha512>> {
+        match &mut self.inner {
+            ClientRegistrationStateInner::Ristretto255Sha512(inner) => inner
+                .take()
+                .ok_or_else(|| invalid_state_err("ClientRegistrationState has already been used")),
+            _ => Err(invalid_state_err(
+                "ClientRegistrationState does not match requested cipher suite",
+            )),
+        }
+    }
+
+    pub(crate) fn take_p256(&mut self) -> PyResult<ClientRegistration<P256Sha256>> {
+        match &mut self.inner {
+            ClientRegistrationStateInner::P256Sha256(inner) => inner
+                .take()
+                .ok_or_else(|| invalid_state_err("ClientRegistrationState has already been used")),
+            _ => Err(invalid_state_err(
+                "ClientRegistrationState does not match requested cipher suite",
+            )),
+        }
+    }
+
+    pub(crate) fn take_p384(&mut self) -> PyResult<ClientRegistration<P384Sha384>> {
+        match &mut self.inner {
+            ClientRegistrationStateInner::P384Sha384(inner) => inner
+                .take()
+                .ok_or_else(|| invalid_state_err("ClientRegistrationState has already been used")),
+            _ => Err(invalid_state_err(
+                "ClientRegistrationState does not match requested cipher suite",
+            )),
+        }
+    }
+
+    pub(crate) fn take_p521(&mut self) -> PyResult<ClientRegistration<P521Sha512>> {
+        match &mut self.inner {
+            ClientRegistrationStateInner::P521Sha512(inner) => inner
+                .take()
+                .ok_or_else(|| invalid_state_err("ClientRegistrationState has already been used")),
+            _ => Err(invalid_state_err(
+                "ClientRegistrationState does not match requested cipher suite",
+            )),
+        }
+    }
+
+    pub(crate) fn take_kem(
+        &mut self,
+    ) -> PyResult<ClientRegistration<MlKem768Ristretto255Sha512>> {
+        match &mut self.inner {
+            ClientRegistrationStateInner::MlKem768Ristretto255Sha512(inner) => inner
+                .take()
+                .ok_or_else(|| invalid_state_err("ClientRegistrationState has already been used")),
+            _ => Err(invalid_state_err(
+                "ClientRegistrationState does not match requested cipher suite",
+            )),
+        }
+    }
+}
+
+pub(crate) enum ClientLoginStateInner {
+    Ristretto255Sha512(Option<ClientLogin<Ristretto255Sha512>>),
+    P256Sha256(Option<ClientLogin<P256Sha256>>),
+    P384Sha384(Option<ClientLogin<P384Sha384>>),
+    P521Sha512(Option<ClientLogin<P521Sha512>>),
+    MlKem768Ristretto255Sha512(Option<ClientLogin<MlKem768Ristretto255Sha512>>),
+}
+
+impl ClientLoginStateInner {
+    fn suite_id(&self) -> SuiteId {
+        match self {
+            ClientLoginStateInner::Ristretto255Sha512(_) => SuiteId::Ristretto255Sha512,
+            ClientLoginStateInner::P256Sha256(_) => SuiteId::P256Sha256,
+            ClientLoginStateInner::P384Sha384(_) => SuiteId::P384Sha384,
+            ClientLoginStateInner::P521Sha512(_) => SuiteId::P521Sha512,
+            ClientLoginStateInner::MlKem768Ristretto255Sha512(_) => {
+                SuiteId::MlKem768Ristretto255Sha512
+            }
+        }
     }
 }
 
 #[pyclass(unsendable)]
 pub struct ClientLoginState {
-    pub(crate) inner: Option<ClientLogin<Suite>>,
-}
-
-impl ClientLoginState {
-    pub(crate) fn take(&mut self) -> PyResult<ClientLogin<Suite>> {
-        self.inner
-            .take()
-            .ok_or_else(|| invalid_state_err("ClientLoginState has already been used"))
-    }
+    pub(crate) inner: ClientLoginStateInner,
 }
 
 #[pymethods]
 impl ClientLoginState {
     #[staticmethod]
-    fn deserialize(data: Vec<u8>) -> PyResult<Self> {
-        let inner = ClientLogin::<Suite>::deserialize(&data).map_err(to_py_err)?;
-        Ok(Self { inner: Some(inner) })
+    #[pyo3(signature = (data, suite=None))]
+    fn deserialize(data: Vec<u8>, suite: Option<&str>) -> PyResult<Self> {
+        let suite = parse_suite(suite)?;
+        let inner = match suite {
+            SuiteId::Ristretto255Sha512 => ClientLoginStateInner::Ristretto255Sha512(Some(
+                ClientLogin::<Ristretto255Sha512>::deserialize(&data).map_err(to_py_err)?,
+            )),
+            SuiteId::P256Sha256 => ClientLoginStateInner::P256Sha256(Some(
+                ClientLogin::<P256Sha256>::deserialize(&data).map_err(to_py_err)?,
+            )),
+            SuiteId::P384Sha384 => ClientLoginStateInner::P384Sha384(Some(
+                ClientLogin::<P384Sha384>::deserialize(&data).map_err(to_py_err)?,
+            )),
+            SuiteId::P521Sha512 => ClientLoginStateInner::P521Sha512(Some(
+                ClientLogin::<P521Sha512>::deserialize(&data).map_err(to_py_err)?,
+            )),
+            SuiteId::MlKem768Ristretto255Sha512 => {
+                ClientLoginStateInner::MlKem768Ristretto255Sha512(Some(
+                    ClientLogin::<MlKem768Ristretto255Sha512>::deserialize(&data)
+                        .map_err(to_py_err)?,
+                ))
+            }
+        };
+        Ok(Self { inner })
     }
 
     fn serialize(&self, py: Python<'_>) -> PyResult<Py<PyBytes>> {
-        let inner = self
-            .inner
-            .as_ref()
-            .ok_or_else(|| invalid_state_err("ClientLoginState has already been used"))?;
-        let serialized = inner.serialize().to_vec();
+        let serialized = match &self.inner {
+            ClientLoginStateInner::Ristretto255Sha512(inner) => inner
+                .as_ref()
+                .ok_or_else(|| invalid_state_err("ClientLoginState has already been used"))?
+                .serialize()
+                .to_vec(),
+            ClientLoginStateInner::P256Sha256(inner) => inner
+                .as_ref()
+                .ok_or_else(|| invalid_state_err("ClientLoginState has already been used"))?
+                .serialize()
+                .to_vec(),
+            ClientLoginStateInner::P384Sha384(inner) => inner
+                .as_ref()
+                .ok_or_else(|| invalid_state_err("ClientLoginState has already been used"))?
+                .serialize()
+                .to_vec(),
+            ClientLoginStateInner::P521Sha512(inner) => inner
+                .as_ref()
+                .ok_or_else(|| invalid_state_err("ClientLoginState has already been used"))?
+                .serialize()
+                .to_vec(),
+            ClientLoginStateInner::MlKem768Ristretto255Sha512(inner) => inner
+                .as_ref()
+                .ok_or_else(|| invalid_state_err("ClientLoginState has already been used"))?
+                .serialize()
+                .to_vec(),
+        };
         Ok(py_utils::to_pybytes(py, &serialized))
+    }
+}
+
+impl ClientLoginState {
+    pub(crate) fn suite_id(&self) -> SuiteId {
+        self.inner.suite_id()
+    }
+
+    pub(crate) fn take_ristretto(&mut self) -> PyResult<ClientLogin<Ristretto255Sha512>> {
+        match &mut self.inner {
+            ClientLoginStateInner::Ristretto255Sha512(inner) => inner
+                .take()
+                .ok_or_else(|| invalid_state_err("ClientLoginState has already been used")),
+            _ => Err(invalid_state_err(
+                "ClientLoginState does not match requested cipher suite",
+            )),
+        }
+    }
+
+    pub(crate) fn take_p256(&mut self) -> PyResult<ClientLogin<P256Sha256>> {
+        match &mut self.inner {
+            ClientLoginStateInner::P256Sha256(inner) => inner
+                .take()
+                .ok_or_else(|| invalid_state_err("ClientLoginState has already been used")),
+            _ => Err(invalid_state_err(
+                "ClientLoginState does not match requested cipher suite",
+            )),
+        }
+    }
+
+    pub(crate) fn take_p384(&mut self) -> PyResult<ClientLogin<P384Sha384>> {
+        match &mut self.inner {
+            ClientLoginStateInner::P384Sha384(inner) => inner
+                .take()
+                .ok_or_else(|| invalid_state_err("ClientLoginState has already been used")),
+            _ => Err(invalid_state_err(
+                "ClientLoginState does not match requested cipher suite",
+            )),
+        }
+    }
+
+    pub(crate) fn take_p521(&mut self) -> PyResult<ClientLogin<P521Sha512>> {
+        match &mut self.inner {
+            ClientLoginStateInner::P521Sha512(inner) => inner
+                .take()
+                .ok_or_else(|| invalid_state_err("ClientLoginState has already been used")),
+            _ => Err(invalid_state_err(
+                "ClientLoginState does not match requested cipher suite",
+            )),
+        }
+    }
+
+    pub(crate) fn take_kem(&mut self) -> PyResult<ClientLogin<MlKem768Ristretto255Sha512>> {
+        match &mut self.inner {
+            ClientLoginStateInner::MlKem768Ristretto255Sha512(inner) => inner
+                .take()
+                .ok_or_else(|| invalid_state_err("ClientLoginState has already been used")),
+            _ => Err(invalid_state_err(
+                "ClientLoginState does not match requested cipher suite",
+            )),
+        }
+    }
+}
+
+pub(crate) enum ServerLoginStateInner {
+    Ristretto255Sha512(Option<ServerLogin<Ristretto255Sha512>>),
+    P256Sha256(Option<ServerLogin<P256Sha256>>),
+    P384Sha384(Option<ServerLogin<P384Sha384>>),
+    P521Sha512(Option<ServerLogin<P521Sha512>>),
+    MlKem768Ristretto255Sha512(Option<ServerLogin<MlKem768Ristretto255Sha512>>),
+}
+
+impl ServerLoginStateInner {
+    fn suite_id(&self) -> SuiteId {
+        match self {
+            ServerLoginStateInner::Ristretto255Sha512(_) => SuiteId::Ristretto255Sha512,
+            ServerLoginStateInner::P256Sha256(_) => SuiteId::P256Sha256,
+            ServerLoginStateInner::P384Sha384(_) => SuiteId::P384Sha384,
+            ServerLoginStateInner::P521Sha512(_) => SuiteId::P521Sha512,
+            ServerLoginStateInner::MlKem768Ristretto255Sha512(_) => {
+                SuiteId::MlKem768Ristretto255Sha512
+            }
+        }
     }
 }
 
 #[pyclass(unsendable)]
 pub struct ServerLoginState {
-    pub(crate) inner: Option<ServerLogin<Suite>>,
-}
-
-impl ServerLoginState {
-    pub(crate) fn take(&mut self) -> PyResult<ServerLogin<Suite>> {
-        self.inner
-            .take()
-            .ok_or_else(|| invalid_state_err("ServerLoginState has already been used"))
-    }
+    pub(crate) inner: ServerLoginStateInner,
 }
 
 #[pymethods]
 impl ServerLoginState {
     #[staticmethod]
-    fn deserialize(data: Vec<u8>) -> PyResult<Self> {
-        let inner = ServerLogin::<Suite>::deserialize(&data).map_err(to_py_err)?;
-        Ok(Self { inner: Some(inner) })
+    #[pyo3(signature = (data, suite=None))]
+    fn deserialize(data: Vec<u8>, suite: Option<&str>) -> PyResult<Self> {
+        let suite = parse_suite(suite)?;
+        let inner = match suite {
+            SuiteId::Ristretto255Sha512 => ServerLoginStateInner::Ristretto255Sha512(Some(
+                ServerLogin::<Ristretto255Sha512>::deserialize(&data).map_err(to_py_err)?,
+            )),
+            SuiteId::P256Sha256 => ServerLoginStateInner::P256Sha256(Some(
+                ServerLogin::<P256Sha256>::deserialize(&data).map_err(to_py_err)?,
+            )),
+            SuiteId::P384Sha384 => ServerLoginStateInner::P384Sha384(Some(
+                ServerLogin::<P384Sha384>::deserialize(&data).map_err(to_py_err)?,
+            )),
+            SuiteId::P521Sha512 => ServerLoginStateInner::P521Sha512(Some(
+                ServerLogin::<P521Sha512>::deserialize(&data).map_err(to_py_err)?,
+            )),
+            SuiteId::MlKem768Ristretto255Sha512 => {
+                ServerLoginStateInner::MlKem768Ristretto255Sha512(Some(
+                    ServerLogin::<MlKem768Ristretto255Sha512>::deserialize(&data)
+                        .map_err(to_py_err)?,
+                ))
+            }
+        };
+        Ok(Self { inner })
     }
 
     fn serialize(&self, py: Python<'_>) -> PyResult<Py<PyBytes>> {
-        let inner = self
-            .inner
-            .as_ref()
-            .ok_or_else(|| invalid_state_err("ServerLoginState has already been used"))?;
-        let serialized = inner.serialize().to_vec();
+        let serialized = match &self.inner {
+            ServerLoginStateInner::Ristretto255Sha512(inner) => inner
+                .as_ref()
+                .ok_or_else(|| invalid_state_err("ServerLoginState has already been used"))?
+                .serialize()
+                .to_vec(),
+            ServerLoginStateInner::P256Sha256(inner) => inner
+                .as_ref()
+                .ok_or_else(|| invalid_state_err("ServerLoginState has already been used"))?
+                .serialize()
+                .to_vec(),
+            ServerLoginStateInner::P384Sha384(inner) => inner
+                .as_ref()
+                .ok_or_else(|| invalid_state_err("ServerLoginState has already been used"))?
+                .serialize()
+                .to_vec(),
+            ServerLoginStateInner::P521Sha512(inner) => inner
+                .as_ref()
+                .ok_or_else(|| invalid_state_err("ServerLoginState has already been used"))?
+                .serialize()
+                .to_vec(),
+            ServerLoginStateInner::MlKem768Ristretto255Sha512(inner) => inner
+                .as_ref()
+                .ok_or_else(|| invalid_state_err("ServerLoginState has already been used"))?
+                .serialize()
+                .to_vec(),
+        };
         Ok(py_utils::to_pybytes(py, &serialized))
+    }
+}
+
+impl ServerLoginState {
+    pub(crate) fn suite_id(&self) -> SuiteId {
+        self.inner.suite_id()
+    }
+
+    pub(crate) fn take_ristretto(&mut self) -> PyResult<ServerLogin<Ristretto255Sha512>> {
+        match &mut self.inner {
+            ServerLoginStateInner::Ristretto255Sha512(inner) => inner
+                .take()
+                .ok_or_else(|| invalid_state_err("ServerLoginState has already been used")),
+            _ => Err(invalid_state_err(
+                "ServerLoginState does not match requested cipher suite",
+            )),
+        }
+    }
+
+    pub(crate) fn take_p256(&mut self) -> PyResult<ServerLogin<P256Sha256>> {
+        match &mut self.inner {
+            ServerLoginStateInner::P256Sha256(inner) => inner
+                .take()
+                .ok_or_else(|| invalid_state_err("ServerLoginState has already been used")),
+            _ => Err(invalid_state_err(
+                "ServerLoginState does not match requested cipher suite",
+            )),
+        }
+    }
+
+    pub(crate) fn take_p384(&mut self) -> PyResult<ServerLogin<P384Sha384>> {
+        match &mut self.inner {
+            ServerLoginStateInner::P384Sha384(inner) => inner
+                .take()
+                .ok_or_else(|| invalid_state_err("ServerLoginState has already been used")),
+            _ => Err(invalid_state_err(
+                "ServerLoginState does not match requested cipher suite",
+            )),
+        }
+    }
+
+    pub(crate) fn take_p521(&mut self) -> PyResult<ServerLogin<P521Sha512>> {
+        match &mut self.inner {
+            ServerLoginStateInner::P521Sha512(inner) => inner
+                .take()
+                .ok_or_else(|| invalid_state_err("ServerLoginState has already been used")),
+            _ => Err(invalid_state_err(
+                "ServerLoginState does not match requested cipher suite",
+            )),
+        }
+    }
+
+    pub(crate) fn take_kem(&mut self) -> PyResult<ServerLogin<MlKem768Ristretto255Sha512>> {
+        match &mut self.inner {
+            ServerLoginStateInner::MlKem768Ristretto255Sha512(inner) => inner
+                .take()
+                .ok_or_else(|| invalid_state_err("ServerLoginState has already been used")),
+            _ => Err(invalid_state_err(
+                "ServerLoginState does not match requested cipher suite",
+            )),
+        }
     }
 }
 

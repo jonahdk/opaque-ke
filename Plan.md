@@ -28,25 +28,24 @@
   - `client` / `server` (high-level convenience wrappers)
 
 ## Cipher suite strategy
-Because Rust uses generics for `CipherSuite`, expose **fixed suites** in Python:
+The bindings expose multiple **fixed suites** compiled by default:
 - `RISTRETTO255_SHA512` (default)
-- `P256_SHA256` (optional, feature-gated)
-- `P384_SHA384` (optional)
-- `P521_SHA512` (optional)
-- `ML_KEM_768_RISTRETTO255_SHA512` (optional, `kem` feature)
+- `P256_SHA256`
+- `P384_SHA384`
+- `P521_SHA512`
+- `ML_KEM_768_RISTRETTO255_SHA512`
 
-Python API accepts either:
-- An enum-like `CipherSuite` object, or
-- A string identifier (validated and mapped to compiled-in suites).
+The Python API accepts an optional suite string identifier and dispatches to
+the matching Rust `CipherSuite` at runtime. If omitted, it defaults to
+`ristretto255_sha512`.
 
 ## Data model and API design
 Python should minimize handling of Rust generics by exposing **bytes** for protocol messages and **state objects** for multi-step operations.
 
 ### Core objects
 - `ServerSetup`
-  - `new(suite)` -> create with OS RNG
+  - `new()` -> create with OS RNG
   - `serialize()` / `deserialize(bytes)`
-  - `public_key()` (optional helper; if safe to expose)
 
 - `ServerRegistration` (represents password file)
   - `serialize()` / `deserialize(bytes)`
@@ -61,19 +60,19 @@ Python should minimize handling of Rust generics by exposing **bytes** for proto
   - `serialize()` / `deserialize(bytes)` (optional; for persistence)
 
 ### High-level convenience API (primary UX)
-Expose `OpaqueClient` and `OpaqueServer` wrappers that store the cipher suite and default parameters so callers do not pass them on each call.
+Expose `OpaqueClient` and `OpaqueServer` wrappers that validate the cipher suite name and provide a stable API surface.
 Method names should mirror the JS SDK where possible:
 - `OpaqueClient.start_registration(password: bytes) -> (request_bytes, ClientRegistrationState)`
 - `OpaqueClient.finish_registration(state, password: bytes, response_bytes) -> (upload_bytes, export_key)`
 - `OpaqueClient.start_login(password: bytes) -> (request_bytes, ClientLoginState)`
-- `OpaqueClient.finish_login(state, password: bytes, response_bytes) -> (finalization_bytes, session_key, export_key, server_public_key?)`
+- `OpaqueClient.finish_login(state, password: bytes, response_bytes) -> (finalization_bytes, session_key, export_key, server_public_key)`
 - `OpaqueClient.verify_server_public_key(expected: bytes, actual: bytes) -> None` (raises on mismatch)
-- `OpaqueServer.start_registration(server_setup, request_bytes, credential_identifier: bytes) -> (response_bytes, ServerRegistrationState)`
+- `OpaqueServer.start_registration(server_setup, request_bytes, credential_identifier: bytes) -> response_bytes`
 - `OpaqueServer.finish_registration(upload_bytes) -> ServerRegistration`
 - `OpaqueServer.start_login(server_setup, password_file, request_bytes, credential_identifier: bytes) -> (response_bytes, ServerLoginState)`
 - `OpaqueServer.finish_login(state, finalization_bytes) -> (session_key)`
 
-### Low-level API (explicit suite/params)
+### Low-level API (explicit params)
 Keep the existing explicit function set for advanced callers, but name them to mirror JS as well. Disambiguate client/server by module or namespace:
 - `registration.client.start_registration(...)`
 - `registration.client.finish_registration(...)`
@@ -85,31 +84,31 @@ Keep the existing explicit function set for advanced callers, but name them to m
 - `login.server.finish_login(...)`
 
 ### Registration flow
-- `registration.client.start_registration(password: bytes, suite) -> (request_bytes, ClientRegistrationState)`
-- `registration.server.start_registration(server_setup, request_bytes, credential_identifier: bytes, suite) -> (response_bytes, ServerRegistrationState)`
+- `registration.client.start_registration(password: bytes) -> (request_bytes, ClientRegistrationState)`
+- `registration.server.start_registration(server_setup, request_bytes, credential_identifier: bytes) -> response_bytes`
 - `registration.client.finish_registration(state, password: bytes, response_bytes, params) -> (upload_bytes, export_key)`
-- `registration.server.finish_registration(upload_bytes, suite) -> ServerRegistration`
+- `registration.server.finish_registration(upload_bytes) -> ServerRegistration`
 
 ### Login flow
-- `login.client.start_login(password: bytes, suite) -> (request_bytes, ClientLoginState)`
+- `login.client.start_login(password: bytes) -> (request_bytes, ClientLoginState)`
 - `login.server.start_login(server_setup, password_file, request_bytes, credential_identifier: bytes, params) -> (response_bytes, ServerLoginState)`
-- `login.client.finish_login(state, password: bytes, response_bytes, params) -> (finalization_bytes, session_key, export_key, server_public_key?)`
+- `login.client.finish_login(state, password: bytes, response_bytes, params) -> (finalization_bytes, session_key, export_key, server_public_key)`
 - `login.server.finish_login(state, finalization_bytes, params) -> (session_key)`
 
 ### Parameter objects
 Expose small, explicit parameter classes mirroring Rust structs:
 - `Identifiers(client: Optional[bytes], server: Optional[bytes])`
-- `ClientRegistrationFinishParameters(identifiers: Optional[Identifiers], ksf: Optional[KsfParameters])`
+- `ClientRegistrationFinishParameters(identifiers: Optional[Identifiers], key_stretching: Optional[KeyStretching])`
 - `ServerLoginParameters(context: Optional[bytes], identifiers: Optional[Identifiers])`
-- `ClientLoginFinishParameters(context: Optional[bytes], identifiers: Optional[Identifiers], server_s_pk: Optional[bytes])`
+- `ClientLoginFinishParameters(context: Optional[bytes], identifiers: Optional[Identifiers], key_stretching: Optional[KeyStretching], server_s_pk: Optional[bytes])`
 - `KeyStretching(variant: Literal["memory_constrained", "rfc_recommended"], params: Optional[Argon2Params])`
-  - Align defaults with JS presets; feature-gated when `argon2` is enabled.
+  - Align defaults with JS presets; Argon2 is always enabled in the bindings.
 Note: `context` is supported in both server and client login parameters; mismatches must fail.
 
 ### KSF support
 Initial support should include:
 - Default KSF parameters (matching Rust defaults).
-- Optional explicit KSF configuration (Argon2 params if feature `argon2` enabled).
+- Optional explicit KSF configuration (Argon2 params; always enabled in the bindings).
 
 ## Serialization boundary
 - Python APIs accept/return `bytes` for protocol messages and serialized state.
@@ -148,10 +147,13 @@ Rust `ProtocolError` variants map 1:1 to these Python exceptions, preserving the
 ## Build and packaging
 - Use `maturin` (PyO3 recommended path):
   - `pyproject.toml` with `pyo3` and `maturin` build backend.
-  - Build features in `Cargo.toml` for enabling cipher suites and KSFs.
-- Default feature set for bindings: `std`, `ristretto255`, `argon2`, `serde`.
-- Optional features enabled via `pip install opaque-ke[features]` (document per suite).
-- Commit to wheels for CPython 3.9–3.13 on Linux/macOS/Windows (manylinux targets for Linux).
+  - Build features in `Cargo.toml` for enabling cipher suites; Argon2 is always enabled.
+- Default feature set for bindings is pinned in `python/opaque_ke_py/Cargo.toml`
+  (`std`, `ristretto255`, `argon2`, `serde`, plus KEM enabled).
+- Suites are compiled in by default; there are no Python-level feature toggles
+  for enabling/disabling suites.
+- CI should build wheels for CPython 3.9–3.13 on Linux/macOS/Windows (manylinux
+  targets for Linux), AMD64 and ARM64.
 
 Minimal `pyproject.toml` sketch (for the plan):
 ```toml
@@ -160,12 +162,13 @@ requires = ["maturin>=1.4"]
 build-backend = "maturin"
 
 [project]
-name = "opaque-ke"
+name = "opaque_ke"
 requires-python = ">=3.9"
 
 [tool.maturin]
 bindings = "pyo3"
-features = ["std", "ristretto255", "argon2", "serde"]
+module-name = "opaque_ke"
+python-source = "python"
 ```
 
 ## Testing plan
@@ -192,11 +195,12 @@ features = ["std", "ristretto255", "argon2", "serde"]
 1. **Scaffold bindings crate**: create new PyO3 crate, build system, and basic module layout.
 2. **Minimal API**: Ristretto255 + SHA-512 suite, registration and login flows, serialization.
 3. **Error + parameter polish**: exception hierarchy, parameter objects, identifier handling.
-4. **Expanded suites**: add P-256/P-384/P-521, KEM suite as optional features.
-5. **Docs + tests**: pytest suite + documentation.
+4. **Docs + tests**: pytest suite + documentation.
+5. **CI packaging**: wheel builds for supported Python/OS targets.
+6. **Expanded suites (future)**: add P-256/P-384/P-521, KEM suite as optional features.
 
 ## Open questions / decisions needed
-- Which cipher suites should be enabled by default for Python wheels?
+- Should additional suites be exposed at all, and if so what Python API should select them?
 - Should server key material/HSM pathways be exposed in Python initially or deferred?
 
 ## Implementation timeline
@@ -204,7 +208,8 @@ features = ["std", "ristretto255", "argon2", "serde"]
 2: ~~Implement minimal API (Ristretto255 + SHA-512), registration/login flows, and serialization.~~
 3: ~~Error mapping, parameter objects, context support, state handling, and encoding helpers.~~
 4: ~~Cross-stack JS interop tests + pytest suite + docs polish.~~
-5: Expand suites (P-256/P-384/P-521, KEM if enabled), wheels for 3.9–3.13, CI packaging.
+5: ~~CI packaging (wheels for 3.9–3.13).~~
+6: Expand suites (P-256/P-384/P-521, KEM if enabled).
 
 # NOTES
 Everything else in this file (and in AGENTS.md) and in any commit after a85a7be is all AI-written. And the agents working on those don't know what the JS stuff is (like you, since you are also one, if you're reading this). But basically just have a file in-repo for documenting all the JS stuff that needs clarification, but continue working. Whenever it gets clarified, implement or fix anything that needs to be implemented or fixed.

@@ -1,8 +1,34 @@
 # Python bindings
 
 The `opaque-ke` Python bindings expose a high-level API (`OpaqueClient`/`OpaqueServer`)
-plus lower-level functions that mirror the JS SDK naming. The bindings currently target
-`ristretto255_sha512`.
+plus lower-level functions that mirror the JS SDK naming. The default suite is
+`ristretto255_sha512`, with optional support for additional suites listed below.
+
+## Supported cipher suites
+
+The bindings compile multiple suites by default. You can list them with
+`opaque_ke.ciphersuites.available()`:
+
+- `ristretto255_sha512` (default)
+- `p256_sha256`
+- `p384_sha384`
+- `p521_sha512`
+- `ml_kem_768_ristretto255_sha512`
+
+Most APIs accept an optional `suite` string. Deserialization helpers such as
+`ServerSetup.deserialize(...)`, `ServerRegistration.deserialize(...)`, and the
+`*State.deserialize(...)` methods also accept `suite` so the correct type is
+selected when the suite is not the default.
+
+## Build configuration
+
+The bindings are built with the `opaque-ke` features `std`, `ristretto255`, `argon2`,
+`serde`, and `kem` (see `python/opaque_ke_py/Cargo.toml`). Argon2 is always enabled in
+the bindings to support key stretching. Suite selection happens at runtime using the
+suite identifier strings above; if no suite is provided, `ristretto255_sha512` is used.
+
+Wheels are built for CPython 3.9 through 3.14 on Linux, macOS, and Windows for both
+AMD64 and ARM64.
 
 ## Install (local dev)
 
@@ -43,6 +69,11 @@ finalization, session_key, export_key, server_s_pk = client.finish_login(
 server_session_key = server.finish_login(server_state, finalization, None)
 
 assert session_key == server_session_key
+
+# Specify an alternate suite (example)
+client = OpaqueClient("p256_sha256")
+server = OpaqueServer("p256_sha256")
+server_setup = ServerSetup("p256_sha256")
 ```
 
 ## Low-level API
@@ -70,12 +101,15 @@ finalization, session_key, _, _ = login.client.finish_login(
 server_session_key = login.server.finish_login(server_state, finalization, None)
 
 assert session_key == server_session_key
+
+# Low-level calls accept an optional suite identifier:
+# registration.client.start_registration(password, suite="p256_sha256")
 ```
 
 ## Parameters, identifiers, and context
 
 Use the parameter objects in `opaque_ke.types` when you need identifiers, context,
-key stretching, or server public key pinning:
+key stretching (Argon2), or server public key pinning:
 
 ```python
 from opaque_ke.types import (
@@ -108,6 +142,18 @@ assert decode_b64(encoded) == b"payload"
 
 State objects are single-use. Reusing a state will raise `InvalidStateError`.
 To persist across processes, serialize to bytes and store with base64.
+
+## Security notes
+
+- Python `bytes` are immutable and are not zeroized; treat them as sensitive and
+  minimize their lifetime where possible.
+- State objects and serialized blobs should be protected like other secrets.
+- For server public key pinning, compare the expected key with the one returned
+  from `client.finish_login`:
+
+```python
+client.verify_server_public_key(expected_server_s_pk, server_s_pk)
+```
 
 ## Error mapping
 

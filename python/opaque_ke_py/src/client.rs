@@ -3,34 +3,25 @@ use opaque_ke::{
     ClientLogin, ClientLoginFinishParameters, ClientRegistration,
     ClientRegistrationFinishParameters, CredentialResponse, RegistrationResponse,
 };
-use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyModule};
 
-use crate::errors::{invalid_login_err, to_py_err};
+use crate::errors::{invalid_login_err, invalid_state_err, to_py_err};
 use crate::py_utils;
-use crate::suite::{SUITE_NAME, Suite};
+use crate::suite::{parse_suite, Ristretto255Sha512, SuiteId};
+use crate::suite::MlKem768Ristretto255Sha512;
+use crate::suite::P256Sha256;
+use crate::suite::P384Sha384;
+use crate::suite::P521Sha512;
 use crate::types::{
     ClientLoginFinishParameters as PyClientLoginFinishParameters, ClientLoginState,
-    ClientRegistrationFinishParameters as PyClientRegistrationFinishParameters,
-    ClientRegistrationState,
+    ClientLoginStateInner, ClientRegistrationFinishParameters as PyClientRegistrationFinishParameters,
+    ClientRegistrationState, ClientRegistrationStateInner,
 };
 
 #[pyclass(unsendable)]
 pub struct OpaqueClient {
-    _suite: String,
-}
-
-impl OpaqueClient {
-    fn validate_suite(suite: Option<&str>) -> PyResult<String> {
-        let normalized = suite.unwrap_or(SUITE_NAME).to_ascii_lowercase();
-        if normalized != SUITE_NAME {
-            return Err(PyErr::new::<PyValueError, _>(format!(
-                "unsupported cipher suite '{normalized}'"
-            )));
-        }
-        Ok(normalized)
-    }
+    suite: SuiteId,
 }
 
 #[pymethods]
@@ -38,7 +29,7 @@ impl OpaqueClient {
     #[new]
     fn new(suite: Option<&str>) -> PyResult<Self> {
         Ok(Self {
-            _suite: Self::validate_suite(suite)?,
+            suite: parse_suite(suite)?,
         })
     }
 
@@ -48,14 +39,69 @@ impl OpaqueClient {
         password: Vec<u8>,
     ) -> PyResult<(Py<PyBytes>, ClientRegistrationState)> {
         let mut rng = OsRng;
-        let result = ClientRegistration::<Suite>::start(&mut rng, &password).map_err(to_py_err)?;
-        let message = result.message.serialize().to_vec();
-        Ok((
-            py_utils::to_pybytes(py, &message),
-            ClientRegistrationState {
-                inner: Some(result.state),
-            },
-        ))
+        match self.suite {
+            SuiteId::Ristretto255Sha512 => {
+                let result =
+                    ClientRegistration::<Ristretto255Sha512>::start(&mut rng, &password)
+                        .map_err(to_py_err)?;
+                let message = result.message.serialize().to_vec();
+                Ok((
+                    py_utils::to_pybytes(py, &message),
+                    ClientRegistrationState {
+                        inner: ClientRegistrationStateInner::Ristretto255Sha512(Some(result.state)),
+                    },
+                ))
+            }
+            SuiteId::P256Sha256 => {
+                let result = ClientRegistration::<P256Sha256>::start(&mut rng, &password)
+                    .map_err(to_py_err)?;
+                let message = result.message.serialize().to_vec();
+                Ok((
+                    py_utils::to_pybytes(py, &message),
+                    ClientRegistrationState {
+                        inner: ClientRegistrationStateInner::P256Sha256(Some(result.state)),
+                    },
+                ))
+            }
+            SuiteId::P384Sha384 => {
+                let result = ClientRegistration::<P384Sha384>::start(&mut rng, &password)
+                    .map_err(to_py_err)?;
+                let message = result.message.serialize().to_vec();
+                Ok((
+                    py_utils::to_pybytes(py, &message),
+                    ClientRegistrationState {
+                        inner: ClientRegistrationStateInner::P384Sha384(Some(result.state)),
+                    },
+                ))
+            }
+            SuiteId::P521Sha512 => {
+                let result = ClientRegistration::<P521Sha512>::start(&mut rng, &password)
+                    .map_err(to_py_err)?;
+                let message = result.message.serialize().to_vec();
+                Ok((
+                    py_utils::to_pybytes(py, &message),
+                    ClientRegistrationState {
+                        inner: ClientRegistrationStateInner::P521Sha512(Some(result.state)),
+                    },
+                ))
+            }
+            SuiteId::MlKem768Ristretto255Sha512 => {
+                let result = ClientRegistration::<MlKem768Ristretto255Sha512>::start(
+                    &mut rng,
+                    &password,
+                )
+                .map_err(to_py_err)?;
+                let message = result.message.serialize().to_vec();
+                Ok((
+                    py_utils::to_pybytes(py, &message),
+                    ClientRegistrationState {
+                        inner: ClientRegistrationStateInner::MlKem768Ristretto255Sha512(
+                            Some(result.state),
+                        ),
+                    },
+                ))
+            }
+        }
     }
 
     fn finish_registration(
@@ -66,9 +112,12 @@ impl OpaqueClient {
         response: Vec<u8>,
         params: Option<PyRef<'_, PyClientRegistrationFinishParameters>>,
     ) -> PyResult<(Py<PyBytes>, Py<PyBytes>)> {
-        let state = state.take()?;
-        let response = RegistrationResponse::<Suite>::deserialize(&response).map_err(to_py_err)?;
-        let mut rng = OsRng;
+        let state_suite = state.suite_id();
+        if state_suite != self.suite {
+            return Err(invalid_state_err(
+                "ClientRegistrationState does not match this client instance",
+            ));
+        }
         let identifiers = params
             .as_ref()
             .and_then(|params| params.identifiers().cloned());
@@ -86,15 +135,81 @@ impl OpaqueClient {
         } else {
             ClientRegistrationFinishParameters::default()
         };
-        let result = state
-            .finish(&mut rng, &password, response, finish_params)
-            .map_err(to_py_err)?;
-        let message = result.message.serialize().to_vec();
-        let export_key = result.export_key.to_vec();
-        Ok((
-            py_utils::to_pybytes(py, &message),
-            py_utils::to_pybytes(py, &export_key),
-        ))
+        let mut rng = OsRng;
+        match self.suite {
+            SuiteId::Ristretto255Sha512 => {
+                let state = state.take_ristretto()?;
+                let response =
+                    RegistrationResponse::<Ristretto255Sha512>::deserialize(&response)
+                        .map_err(to_py_err)?;
+                let result = state
+                    .finish(&mut rng, &password, response, finish_params)
+                    .map_err(to_py_err)?;
+                let message = result.message.serialize().to_vec();
+                let export_key = result.export_key.to_vec();
+                Ok((
+                    py_utils::to_pybytes(py, &message),
+                    py_utils::to_pybytes(py, &export_key),
+                ))
+            }
+            SuiteId::P256Sha256 => {
+                let state = state.take_p256()?;
+                let response = RegistrationResponse::<P256Sha256>::deserialize(&response)
+                    .map_err(to_py_err)?;
+                let result = state
+                    .finish(&mut rng, &password, response, finish_params)
+                    .map_err(to_py_err)?;
+                let message = result.message.serialize().to_vec();
+                let export_key = result.export_key.to_vec();
+                Ok((
+                    py_utils::to_pybytes(py, &message),
+                    py_utils::to_pybytes(py, &export_key),
+                ))
+            }
+            SuiteId::P384Sha384 => {
+                let state = state.take_p384()?;
+                let response = RegistrationResponse::<P384Sha384>::deserialize(&response)
+                    .map_err(to_py_err)?;
+                let result = state
+                    .finish(&mut rng, &password, response, finish_params)
+                    .map_err(to_py_err)?;
+                let message = result.message.serialize().to_vec();
+                let export_key = result.export_key.to_vec();
+                Ok((
+                    py_utils::to_pybytes(py, &message),
+                    py_utils::to_pybytes(py, &export_key),
+                ))
+            }
+            SuiteId::P521Sha512 => {
+                let state = state.take_p521()?;
+                let response = RegistrationResponse::<P521Sha512>::deserialize(&response)
+                    .map_err(to_py_err)?;
+                let result = state
+                    .finish(&mut rng, &password, response, finish_params)
+                    .map_err(to_py_err)?;
+                let message = result.message.serialize().to_vec();
+                let export_key = result.export_key.to_vec();
+                Ok((
+                    py_utils::to_pybytes(py, &message),
+                    py_utils::to_pybytes(py, &export_key),
+                ))
+            }
+            SuiteId::MlKem768Ristretto255Sha512 => {
+                let state = state.take_kem()?;
+                let response =
+                    RegistrationResponse::<MlKem768Ristretto255Sha512>::deserialize(&response)
+                        .map_err(to_py_err)?;
+                let result = state
+                    .finish(&mut rng, &password, response, finish_params)
+                    .map_err(to_py_err)?;
+                let message = result.message.serialize().to_vec();
+                let export_key = result.export_key.to_vec();
+                Ok((
+                    py_utils::to_pybytes(py, &message),
+                    py_utils::to_pybytes(py, &export_key),
+                ))
+            }
+        }
     }
 
     fn start_login(
@@ -103,14 +218,63 @@ impl OpaqueClient {
         password: Vec<u8>,
     ) -> PyResult<(Py<PyBytes>, ClientLoginState)> {
         let mut rng = OsRng;
-        let result = ClientLogin::<Suite>::start(&mut rng, &password).map_err(to_py_err)?;
-        let message = result.message.serialize().to_vec();
-        Ok((
-            py_utils::to_pybytes(py, &message),
-            ClientLoginState {
-                inner: Some(result.state),
-            },
-        ))
+        match self.suite {
+            SuiteId::Ristretto255Sha512 => {
+                let result = ClientLogin::<Ristretto255Sha512>::start(&mut rng, &password)
+                    .map_err(to_py_err)?;
+                let message = result.message.serialize().to_vec();
+                Ok((
+                    py_utils::to_pybytes(py, &message),
+                    ClientLoginState {
+                        inner: ClientLoginStateInner::Ristretto255Sha512(Some(result.state)),
+                    },
+                ))
+            }
+            SuiteId::P256Sha256 => {
+                let result = ClientLogin::<P256Sha256>::start(&mut rng, &password)
+                    .map_err(to_py_err)?;
+                let message = result.message.serialize().to_vec();
+                Ok((
+                    py_utils::to_pybytes(py, &message),
+                    ClientLoginState {
+                        inner: ClientLoginStateInner::P256Sha256(Some(result.state)),
+                    },
+                ))
+            }
+            SuiteId::P384Sha384 => {
+                let result = ClientLogin::<P384Sha384>::start(&mut rng, &password)
+                    .map_err(to_py_err)?;
+                let message = result.message.serialize().to_vec();
+                Ok((
+                    py_utils::to_pybytes(py, &message),
+                    ClientLoginState {
+                        inner: ClientLoginStateInner::P384Sha384(Some(result.state)),
+                    },
+                ))
+            }
+            SuiteId::P521Sha512 => {
+                let result = ClientLogin::<P521Sha512>::start(&mut rng, &password)
+                    .map_err(to_py_err)?;
+                let message = result.message.serialize().to_vec();
+                Ok((
+                    py_utils::to_pybytes(py, &message),
+                    ClientLoginState {
+                        inner: ClientLoginStateInner::P521Sha512(Some(result.state)),
+                    },
+                ))
+            }
+            SuiteId::MlKem768Ristretto255Sha512 => {
+                let result = ClientLogin::<MlKem768Ristretto255Sha512>::start(&mut rng, &password)
+                    .map_err(to_py_err)?;
+                let message = result.message.serialize().to_vec();
+                Ok((
+                    py_utils::to_pybytes(py, &message),
+                    ClientLoginState {
+                        inner: ClientLoginStateInner::MlKem768Ristretto255Sha512(Some(result.state)),
+                    },
+                ))
+            }
+        }
     }
 
     fn finish_login(
@@ -121,9 +285,12 @@ impl OpaqueClient {
         response: Vec<u8>,
         params: Option<PyRef<'_, PyClientLoginFinishParameters>>,
     ) -> PyResult<(Py<PyBytes>, Py<PyBytes>, Py<PyBytes>, Py<PyBytes>)> {
-        let state = state.take()?;
-        let response = CredentialResponse::<Suite>::deserialize(&response).map_err(to_py_err)?;
-        let mut rng = OsRng;
+        let state_suite = state.suite_id();
+        if state_suite != self.suite {
+            return Err(invalid_state_err(
+                "ClientLoginState does not match this client instance",
+            ));
+        }
         let identifiers = params
             .as_ref()
             .and_then(|params| params.identifiers().cloned());
@@ -147,24 +314,125 @@ impl OpaqueClient {
         } else {
             ClientLoginFinishParameters::default()
         };
-        let result = state
-            .finish(&mut rng, &password, response, finish_params)
-            .map_err(to_py_err)?;
-        let server_s_pk = result.server_s_pk.serialize().to_vec();
-        if let Some(expected) = expected_server_s_pk {
-            if expected != server_s_pk {
-                return Err(invalid_login_err("server public key mismatch"));
+        let mut rng = OsRng;
+        match self.suite {
+            SuiteId::Ristretto255Sha512 => {
+                let state = state.take_ristretto()?;
+                let response = CredentialResponse::<Ristretto255Sha512>::deserialize(&response)
+                    .map_err(to_py_err)?;
+                let result = state
+                    .finish(&mut rng, &password, response, finish_params)
+                    .map_err(to_py_err)?;
+                let server_s_pk = result.server_s_pk.serialize().to_vec();
+                if let Some(expected) = expected_server_s_pk {
+                    if expected != server_s_pk {
+                        return Err(invalid_login_err("server public key mismatch"));
+                    }
+                }
+                let message = result.message.serialize().to_vec();
+                let session_key = result.session_key.to_vec();
+                let export_key = result.export_key.to_vec();
+                Ok((
+                    py_utils::to_pybytes(py, &message),
+                    py_utils::to_pybytes(py, &session_key),
+                    py_utils::to_pybytes(py, &export_key),
+                    py_utils::to_pybytes(py, &server_s_pk),
+                ))
+            }
+            SuiteId::P256Sha256 => {
+                let state = state.take_p256()?;
+                let response = CredentialResponse::<P256Sha256>::deserialize(&response)
+                    .map_err(to_py_err)?;
+                let result = state
+                    .finish(&mut rng, &password, response, finish_params)
+                    .map_err(to_py_err)?;
+                let server_s_pk = result.server_s_pk.serialize().to_vec();
+                if let Some(expected) = expected_server_s_pk {
+                    if expected != server_s_pk {
+                        return Err(invalid_login_err("server public key mismatch"));
+                    }
+                }
+                let message = result.message.serialize().to_vec();
+                let session_key = result.session_key.to_vec();
+                let export_key = result.export_key.to_vec();
+                Ok((
+                    py_utils::to_pybytes(py, &message),
+                    py_utils::to_pybytes(py, &session_key),
+                    py_utils::to_pybytes(py, &export_key),
+                    py_utils::to_pybytes(py, &server_s_pk),
+                ))
+            }
+            SuiteId::P384Sha384 => {
+                let state = state.take_p384()?;
+                let response = CredentialResponse::<P384Sha384>::deserialize(&response)
+                    .map_err(to_py_err)?;
+                let result = state
+                    .finish(&mut rng, &password, response, finish_params)
+                    .map_err(to_py_err)?;
+                let server_s_pk = result.server_s_pk.serialize().to_vec();
+                if let Some(expected) = expected_server_s_pk {
+                    if expected != server_s_pk {
+                        return Err(invalid_login_err("server public key mismatch"));
+                    }
+                }
+                let message = result.message.serialize().to_vec();
+                let session_key = result.session_key.to_vec();
+                let export_key = result.export_key.to_vec();
+                Ok((
+                    py_utils::to_pybytes(py, &message),
+                    py_utils::to_pybytes(py, &session_key),
+                    py_utils::to_pybytes(py, &export_key),
+                    py_utils::to_pybytes(py, &server_s_pk),
+                ))
+            }
+            SuiteId::P521Sha512 => {
+                let state = state.take_p521()?;
+                let response = CredentialResponse::<P521Sha512>::deserialize(&response)
+                    .map_err(to_py_err)?;
+                let result = state
+                    .finish(&mut rng, &password, response, finish_params)
+                    .map_err(to_py_err)?;
+                let server_s_pk = result.server_s_pk.serialize().to_vec();
+                if let Some(expected) = expected_server_s_pk {
+                    if expected != server_s_pk {
+                        return Err(invalid_login_err("server public key mismatch"));
+                    }
+                }
+                let message = result.message.serialize().to_vec();
+                let session_key = result.session_key.to_vec();
+                let export_key = result.export_key.to_vec();
+                Ok((
+                    py_utils::to_pybytes(py, &message),
+                    py_utils::to_pybytes(py, &session_key),
+                    py_utils::to_pybytes(py, &export_key),
+                    py_utils::to_pybytes(py, &server_s_pk),
+                ))
+            }
+            SuiteId::MlKem768Ristretto255Sha512 => {
+                let state = state.take_kem()?;
+                let response =
+                    CredentialResponse::<MlKem768Ristretto255Sha512>::deserialize(&response)
+                        .map_err(to_py_err)?;
+                let result = state
+                    .finish(&mut rng, &password, response, finish_params)
+                    .map_err(to_py_err)?;
+                let server_s_pk = result.server_s_pk.serialize().to_vec();
+                if let Some(expected) = expected_server_s_pk {
+                    if expected != server_s_pk {
+                        return Err(invalid_login_err("server public key mismatch"));
+                    }
+                }
+                let message = result.message.serialize().to_vec();
+                let session_key = result.session_key.to_vec();
+                let export_key = result.export_key.to_vec();
+                Ok((
+                    py_utils::to_pybytes(py, &message),
+                    py_utils::to_pybytes(py, &session_key),
+                    py_utils::to_pybytes(py, &export_key),
+                    py_utils::to_pybytes(py, &server_s_pk),
+                ))
             }
         }
-        let message = result.message.serialize().to_vec();
-        let session_key = result.session_key.to_vec();
-        let export_key = result.export_key.to_vec();
-        Ok((
-            py_utils::to_pybytes(py, &message),
-            py_utils::to_pybytes(py, &session_key),
-            py_utils::to_pybytes(py, &export_key),
-            py_utils::to_pybytes(py, &server_s_pk),
-        ))
     }
 
     #[allow(clippy::unused_self)]

@@ -1,7 +1,7 @@
 # opaque-ke Python bindings
 
 These bindings expose a Python API for the Rust `opaque-ke` implementation using PyO3.
-They focus on the Ristretto255 + SHA-512 suite and provide both high-level and low-level APIs.
+They default to the Ristretto255 + SHA-512 suite and provide both high-level and low-level APIs.
 See `docs/python.md` in the repo root for additional details.
 
 ## Local development install
@@ -48,10 +48,17 @@ assert session_key == server_session_key
 
 ## Notes
 
+- Supported cipher suites: `ristretto255_sha512`, `p256_sha256`, `p384_sha384`,
+  `p521_sha512`, `ml_kem_768_ristretto255_sha512`
+  (see `opaque_ke.ciphersuites.available()`).
+- Wheels target CPython 3.9 through 3.14 on Linux, macOS, and Windows for AMD64 and ARM64.
+- If no suite is provided, the default is `ristretto255_sha512`.
 - Protocol messages and state blobs are bytes in Python. Use base64 helpers for transport:
   `opaque_ke.encoding.encode_b64` and `opaque_ke.encoding.decode_b64`.
+- Key stretching uses Argon2 and is always enabled in the bindings.
 - State objects are single-use. Reusing a state raises `InvalidStateError`.
 - Errors raised by the core library are mapped to `opaque_ke.errors` exceptions.
+- Python `bytes` are immutable and not zeroized; keep secret data lifetimes short.
 
 ## Running tests
 

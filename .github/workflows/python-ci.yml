@@ -71,4 +71,4 @@ jobs:
 
       - name: Run pytest
         working-directory: python/opaque_ke_py
-        run: python -m pytest
+        run: .venv/bin/python -m pytest

@@ -13,9 +13,11 @@ test = ["pytest>=7"]
 [tool.maturin]
 abi3 = true
 bindings = "pyo3"
-feature-naming = {policy = "snake-case"}
 module-name = "opaque_ke"
 python-source = "python"
+
+[tool.maturin.feature-naming]
+policy = "snake-case"
 
 [tool.pytest.ini_options]
 addopts = "-ra"

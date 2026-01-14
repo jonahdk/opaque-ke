@@ -21,25 +21,36 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Install Python 3.12 (for maturin)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Create maturin venv (Python 3.12)
+        working-directory: python/opaque_ke_py
+        run: |
+          python -m venv .maturin-venv
+          .maturin-venv/bin/python -m pip install -U pip
+          .maturin-venv/bin/python -m pip install maturin
+
+      - name: Install matrix Python (for tests)
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+          cache: 'pip'
 
-      - name: Create venv
+      - name: Create test venv (matrix interpreter)
         working-directory: python/opaque_ke_py
         run: |
           python -m venv .venv
+          .venv/bin/python -m pip install -U pip
+          .venv/bin/python -m pip install pytest
 
-      - name: Install Python deps
+      - name: Build extension (run maturin under Python 3.12)
         working-directory: python/opaque_ke_py
         run: |
-          .venv/bin/python -m pip install -U pip
-          .venv/bin/python -m pip install maturin pytest
-
-      - name: Build extension (maturin develop)
-        working-directory: python/opaque_ke_py
-        run: .venv/bin/python -m maturin develop
+          .maturin-venv/bin/python -m maturin develop ${{ matrix.python-version == '3.13' || matrix.python-version == '3.14' && format('--interpreter python{0}', matrix.python-version) || '' }}
 
       - name: Run pytest
         working-directory: python/opaque_ke_py

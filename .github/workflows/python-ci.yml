@@ -50,7 +50,7 @@ jobs:
       - name: Build extension (run maturin under Python 3.12)
         working-directory: python/opaque_ke_py
         run: |
-          .maturin-venv/bin/python -m maturin develop ${{ matrix.python-version == '3.13' || matrix.python-version == '3.14' && format('--interpreter python{0}', matrix.python-version) || '' }}
+          .maturin-venv/bin/python -m maturin develop ${{ matrix.python-version == '3.13' || matrix.python-version == '3.14' && format('-- --interpreter python{0}', matrix.python-version) || '' }}
 
       - name: Run pytest
         working-directory: python/opaque_ke_py

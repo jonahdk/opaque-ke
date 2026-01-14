@@ -8,15 +8,15 @@ use pyo3::types::{PyBytes, PyModule};
 
 use crate::errors::{invalid_state_err, to_py_err};
 use crate::py_utils;
-use crate::suite::{parse_suite, Ristretto255Sha512, SuiteId};
-use crate::suite::MlKem768Ristretto255Sha512;
-use crate::suite::P256Sha256;
-use crate::suite::P384Sha384;
-use crate::suite::P521Sha512;
+use crate::suite::{
+    MlKem768Ristretto255Sha512, P256Sha256, P384Sha384, P521Sha512, Ristretto255Sha512, SuiteId,
+    parse_suite,
+};
 use crate::types::{
     ClientRegistrationFinishParameters as PyClientRegistrationFinishParameters,
-    ClientRegistrationState, ClientRegistrationStateInner, ServerRegistration as PyServerRegistration,
-    ServerRegistrationInner, ServerSetup, ServerSetupInner,
+    ClientRegistrationState, ClientRegistrationStateInner,
+    ServerRegistration as PyServerRegistration, ServerRegistrationInner, ServerSetup,
+    ServerSetupInner,
 };
 
 fn ensure_suite(expected: SuiteId, actual: SuiteId, label: &str) -> PyResult<()> {
@@ -40,9 +40,8 @@ fn client_start_registration(
     let mut rng = OsRng;
     match suite {
         SuiteId::Ristretto255Sha512 => {
-            let result =
-                ClientRegistration::<Ristretto255Sha512>::start(&mut rng, &password)
-                    .map_err(to_py_err)?;
+            let result = ClientRegistration::<Ristretto255Sha512>::start(&mut rng, &password)
+                .map_err(to_py_err)?;
             let message = result.message.serialize().to_vec();
             Ok((
                 py_utils::to_pybytes(py, &message),
@@ -52,8 +51,8 @@ fn client_start_registration(
             ))
         }
         SuiteId::P256Sha256 => {
-            let result = ClientRegistration::<P256Sha256>::start(&mut rng, &password)
-                .map_err(to_py_err)?;
+            let result =
+                ClientRegistration::<P256Sha256>::start(&mut rng, &password).map_err(to_py_err)?;
             let message = result.message.serialize().to_vec();
             Ok((
                 py_utils::to_pybytes(py, &message),
@@ -63,8 +62,8 @@ fn client_start_registration(
             ))
         }
         SuiteId::P384Sha384 => {
-            let result = ClientRegistration::<P384Sha384>::start(&mut rng, &password)
-                .map_err(to_py_err)?;
+            let result =
+                ClientRegistration::<P384Sha384>::start(&mut rng, &password).map_err(to_py_err)?;
             let message = result.message.serialize().to_vec();
             Ok((
                 py_utils::to_pybytes(py, &message),
@@ -74,8 +73,8 @@ fn client_start_registration(
             ))
         }
         SuiteId::P521Sha512 => {
-            let result = ClientRegistration::<P521Sha512>::start(&mut rng, &password)
-                .map_err(to_py_err)?;
+            let result =
+                ClientRegistration::<P521Sha512>::start(&mut rng, &password).map_err(to_py_err)?;
             let message = result.message.serialize().to_vec();
             Ok((
                 py_utils::to_pybytes(py, &message),
@@ -92,9 +91,9 @@ fn client_start_registration(
             Ok((
                 py_utils::to_pybytes(py, &message),
                 ClientRegistrationState {
-                    inner: ClientRegistrationStateInner::MlKem768Ristretto255Sha512(
-                        Some(result.state),
-                    ),
+                    inner: ClientRegistrationStateInner::MlKem768Ristretto255Sha512(Some(
+                        result.state,
+                    )),
                 },
             ))
         }
@@ -137,9 +136,8 @@ fn client_finish_registration(
     match state_suite {
         SuiteId::Ristretto255Sha512 => {
             let state = state.take_ristretto()?;
-            let response =
-                RegistrationResponse::<Ristretto255Sha512>::deserialize(&response)
-                    .map_err(to_py_err)?;
+            let response = RegistrationResponse::<Ristretto255Sha512>::deserialize(&response)
+                .map_err(to_py_err)?;
             let result = state
                 .finish(&mut rng, &password, response, finish_params)
                 .map_err(to_py_err)?;
@@ -152,8 +150,8 @@ fn client_finish_registration(
         }
         SuiteId::P256Sha256 => {
             let state = state.take_p256()?;
-            let response = RegistrationResponse::<P256Sha256>::deserialize(&response)
-                .map_err(to_py_err)?;
+            let response =
+                RegistrationResponse::<P256Sha256>::deserialize(&response).map_err(to_py_err)?;
             let result = state
                 .finish(&mut rng, &password, response, finish_params)
                 .map_err(to_py_err)?;
@@ -166,8 +164,8 @@ fn client_finish_registration(
         }
         SuiteId::P384Sha384 => {
             let state = state.take_p384()?;
-            let response = RegistrationResponse::<P384Sha384>::deserialize(&response)
-                .map_err(to_py_err)?;
+            let response =
+                RegistrationResponse::<P384Sha384>::deserialize(&response).map_err(to_py_err)?;
             let result = state
                 .finish(&mut rng, &password, response, finish_params)
                 .map_err(to_py_err)?;
@@ -180,8 +178,8 @@ fn client_finish_registration(
         }
         SuiteId::P521Sha512 => {
             let state = state.take_p521()?;
-            let response = RegistrationResponse::<P521Sha512>::deserialize(&response)
-                .map_err(to_py_err)?;
+            let response =
+                RegistrationResponse::<P521Sha512>::deserialize(&response).map_err(to_py_err)?;
             let result = state
                 .finish(&mut rng, &password, response, finish_params)
                 .map_err(to_py_err)?;
@@ -226,9 +224,8 @@ fn server_start_registration(
     }
     match &server_setup.inner {
         ServerSetupInner::Ristretto255Sha512(inner) => {
-            let request =
-                RegistrationRequest::<Ristretto255Sha512>::deserialize(&request)
-                    .map_err(to_py_err)?;
+            let request = RegistrationRequest::<Ristretto255Sha512>::deserialize(&request)
+                .map_err(to_py_err)?;
             let result = ServerRegistration::<Ristretto255Sha512>::start(
                 inner,
                 request,
@@ -241,36 +238,27 @@ fn server_start_registration(
         ServerSetupInner::P256Sha256(inner) => {
             let request =
                 RegistrationRequest::<P256Sha256>::deserialize(&request).map_err(to_py_err)?;
-            let result = ServerRegistration::<P256Sha256>::start(
-                inner,
-                request,
-                &credential_identifier,
-            )
-            .map_err(to_py_err)?;
+            let result =
+                ServerRegistration::<P256Sha256>::start(inner, request, &credential_identifier)
+                    .map_err(to_py_err)?;
             let message = result.message.serialize().to_vec();
             Ok(py_utils::to_pybytes(py, &message))
         }
         ServerSetupInner::P384Sha384(inner) => {
             let request =
                 RegistrationRequest::<P384Sha384>::deserialize(&request).map_err(to_py_err)?;
-            let result = ServerRegistration::<P384Sha384>::start(
-                inner,
-                request,
-                &credential_identifier,
-            )
-            .map_err(to_py_err)?;
+            let result =
+                ServerRegistration::<P384Sha384>::start(inner, request, &credential_identifier)
+                    .map_err(to_py_err)?;
             let message = result.message.serialize().to_vec();
             Ok(py_utils::to_pybytes(py, &message))
         }
         ServerSetupInner::P521Sha512(inner) => {
             let request =
                 RegistrationRequest::<P521Sha512>::deserialize(&request).map_err(to_py_err)?;
-            let result = ServerRegistration::<P521Sha512>::start(
-                inner,
-                request,
-                &credential_identifier,
-            )
-            .map_err(to_py_err)?;
+            let result =
+                ServerRegistration::<P521Sha512>::start(inner, request, &credential_identifier)
+                    .map_err(to_py_err)?;
             let message = result.message.serialize().to_vec();
             Ok(py_utils::to_pybytes(py, &message))
         }
@@ -298,13 +286,14 @@ fn server_finish_registration(
     let suite = parse_suite(suite)?;
     match suite {
         SuiteId::Ristretto255Sha512 => {
-            let upload =
-                RegistrationUpload::<Ristretto255Sha512>::deserialize(&upload)
-                    .map_err(to_py_err)?;
+            let upload = RegistrationUpload::<Ristretto255Sha512>::deserialize(&upload)
+                .map_err(to_py_err)?;
             Ok(PyServerRegistration {
-                inner: ServerRegistrationInner::Ristretto255Sha512(
-                    ServerRegistration::<Ristretto255Sha512>::finish(upload),
-                ),
+                inner: ServerRegistrationInner::Ristretto255Sha512(ServerRegistration::<
+                    Ristretto255Sha512,
+                >::finish(
+                    upload
+                )),
             })
         }
         SuiteId::P256Sha256 => {
@@ -338,9 +327,11 @@ fn server_finish_registration(
             let upload = RegistrationUpload::<MlKem768Ristretto255Sha512>::deserialize(&upload)
                 .map_err(to_py_err)?;
             Ok(PyServerRegistration {
-                inner: ServerRegistrationInner::MlKem768Ristretto255Sha512(
-                    ServerRegistration::<MlKem768Ristretto255Sha512>::finish(upload),
-                ),
+                inner: ServerRegistrationInner::MlKem768Ristretto255Sha512(ServerRegistration::<
+                    MlKem768Ristretto255Sha512,
+                >::finish(
+                    upload
+                )),
             })
         }
     }

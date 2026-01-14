@@ -8,11 +8,10 @@ use pyo3::types::{PyBytes, PyModule};
 
 use crate::errors::{invalid_state_err, to_py_err};
 use crate::py_utils;
-use crate::suite::{parse_suite, Ristretto255Sha512, SuiteId};
-use crate::suite::MlKem768Ristretto255Sha512;
-use crate::suite::P256Sha256;
-use crate::suite::P384Sha384;
-use crate::suite::P521Sha512;
+use crate::suite::{
+    MlKem768Ristretto255Sha512, P256Sha256, P384Sha384, P521Sha512, Ristretto255Sha512, SuiteId,
+    parse_suite,
+};
 use crate::types::{
     ServerLoginParameters as PyServerLoginParameters, ServerLoginState, ServerLoginStateInner,
     ServerRegistration as PyServerRegistration, ServerRegistrationInner, ServerSetup,
@@ -47,9 +46,8 @@ impl OpaqueServer {
         }
         match &server_setup.inner {
             ServerSetupInner::Ristretto255Sha512(inner) => {
-                let request =
-                    RegistrationRequest::<Ristretto255Sha512>::deserialize(&request)
-                        .map_err(to_py_err)?;
+                let request = RegistrationRequest::<Ristretto255Sha512>::deserialize(&request)
+                    .map_err(to_py_err)?;
                 let result = ServerRegistration::<Ristretto255Sha512>::start(
                     inner,
                     request,
@@ -61,40 +59,28 @@ impl OpaqueServer {
             }
             ServerSetupInner::P256Sha256(inner) => {
                 let request =
-                    RegistrationRequest::<P256Sha256>::deserialize(&request)
+                    RegistrationRequest::<P256Sha256>::deserialize(&request).map_err(to_py_err)?;
+                let result =
+                    ServerRegistration::<P256Sha256>::start(inner, request, &credential_identifier)
                         .map_err(to_py_err)?;
-                let result = ServerRegistration::<P256Sha256>::start(
-                    inner,
-                    request,
-                    &credential_identifier,
-                )
-                .map_err(to_py_err)?;
                 let message = result.message.serialize().to_vec();
                 Ok(py_utils::to_pybytes(py, &message))
             }
             ServerSetupInner::P384Sha384(inner) => {
                 let request =
-                    RegistrationRequest::<P384Sha384>::deserialize(&request)
+                    RegistrationRequest::<P384Sha384>::deserialize(&request).map_err(to_py_err)?;
+                let result =
+                    ServerRegistration::<P384Sha384>::start(inner, request, &credential_identifier)
                         .map_err(to_py_err)?;
-                let result = ServerRegistration::<P384Sha384>::start(
-                    inner,
-                    request,
-                    &credential_identifier,
-                )
-                .map_err(to_py_err)?;
                 let message = result.message.serialize().to_vec();
                 Ok(py_utils::to_pybytes(py, &message))
             }
             ServerSetupInner::P521Sha512(inner) => {
                 let request =
-                    RegistrationRequest::<P521Sha512>::deserialize(&request)
+                    RegistrationRequest::<P521Sha512>::deserialize(&request).map_err(to_py_err)?;
+                let result =
+                    ServerRegistration::<P521Sha512>::start(inner, request, &credential_identifier)
                         .map_err(to_py_err)?;
-                let result = ServerRegistration::<P521Sha512>::start(
-                    inner,
-                    request,
-                    &credential_identifier,
-                )
-                .map_err(to_py_err)?;
                 let message = result.message.serialize().to_vec();
                 Ok(py_utils::to_pybytes(py, &message))
             }
@@ -117,19 +103,19 @@ impl OpaqueServer {
     fn finish_registration(&self, upload: Vec<u8>) -> PyResult<PyServerRegistration> {
         match self.suite {
             SuiteId::Ristretto255Sha512 => {
-                let upload =
-                    RegistrationUpload::<Ristretto255Sha512>::deserialize(&upload)
-                        .map_err(to_py_err)?;
+                let upload = RegistrationUpload::<Ristretto255Sha512>::deserialize(&upload)
+                    .map_err(to_py_err)?;
                 Ok(PyServerRegistration {
-                    inner: ServerRegistrationInner::Ristretto255Sha512(
-                        ServerRegistration::<Ristretto255Sha512>::finish(upload),
-                    ),
+                    inner: ServerRegistrationInner::Ristretto255Sha512(ServerRegistration::<
+                        Ristretto255Sha512,
+                    >::finish(
+                        upload
+                    )),
                 })
             }
             SuiteId::P256Sha256 => {
                 let upload =
-                    RegistrationUpload::<P256Sha256>::deserialize(&upload)
-                        .map_err(to_py_err)?;
+                    RegistrationUpload::<P256Sha256>::deserialize(&upload).map_err(to_py_err)?;
                 Ok(PyServerRegistration {
                     inner: ServerRegistrationInner::P256Sha256(
                         ServerRegistration::<P256Sha256>::finish(upload),
@@ -138,8 +124,7 @@ impl OpaqueServer {
             }
             SuiteId::P384Sha384 => {
                 let upload =
-                    RegistrationUpload::<P384Sha384>::deserialize(&upload)
-                        .map_err(to_py_err)?;
+                    RegistrationUpload::<P384Sha384>::deserialize(&upload).map_err(to_py_err)?;
                 Ok(PyServerRegistration {
                     inner: ServerRegistrationInner::P384Sha384(
                         ServerRegistration::<P384Sha384>::finish(upload),
@@ -148,8 +133,7 @@ impl OpaqueServer {
             }
             SuiteId::P521Sha512 => {
                 let upload =
-                    RegistrationUpload::<P521Sha512>::deserialize(&upload)
-                        .map_err(to_py_err)?;
+                    RegistrationUpload::<P521Sha512>::deserialize(&upload).map_err(to_py_err)?;
                 Ok(PyServerRegistration {
                     inner: ServerRegistrationInner::P521Sha512(
                         ServerRegistration::<P521Sha512>::finish(upload),
@@ -157,9 +141,8 @@ impl OpaqueServer {
                 })
             }
             SuiteId::MlKem768Ristretto255Sha512 => {
-                let upload =
-                    RegistrationUpload::<MlKem768Ristretto255Sha512>::deserialize(&upload)
-                        .map_err(to_py_err)?;
+                let upload = RegistrationUpload::<MlKem768Ristretto255Sha512>::deserialize(&upload)
+                    .map_err(to_py_err)?;
                 Ok(PyServerRegistration {
                     inner: ServerRegistrationInner::MlKem768Ristretto255Sha512(
                         ServerRegistration::<MlKem768Ristretto255Sha512>::finish(upload),
@@ -208,10 +191,12 @@ impl OpaqueServer {
             ServerLoginParameters::default()
         };
         match (&server_setup.inner, &password_file.inner) {
-            (ServerSetupInner::Ristretto255Sha512(setup), ServerRegistrationInner::Ristretto255Sha512(reg)) => {
-                let request =
-                    CredentialRequest::<Ristretto255Sha512>::deserialize(&request)
-                        .map_err(to_py_err)?;
+            (
+                ServerSetupInner::Ristretto255Sha512(setup),
+                ServerRegistrationInner::Ristretto255Sha512(reg),
+            ) => {
+                let request = CredentialRequest::<Ristretto255Sha512>::deserialize(&request)
+                    .map_err(to_py_err)?;
                 let result = ServerLogin::<Ristretto255Sha512>::start(
                     &mut rng,
                     setup,
@@ -231,8 +216,7 @@ impl OpaqueServer {
             }
             (ServerSetupInner::P256Sha256(setup), ServerRegistrationInner::P256Sha256(reg)) => {
                 let request =
-                    CredentialRequest::<P256Sha256>::deserialize(&request)
-                        .map_err(to_py_err)?;
+                    CredentialRequest::<P256Sha256>::deserialize(&request).map_err(to_py_err)?;
                 let result = ServerLogin::<P256Sha256>::start(
                     &mut rng,
                     setup,
@@ -252,8 +236,7 @@ impl OpaqueServer {
             }
             (ServerSetupInner::P384Sha384(setup), ServerRegistrationInner::P384Sha384(reg)) => {
                 let request =
-                    CredentialRequest::<P384Sha384>::deserialize(&request)
-                        .map_err(to_py_err)?;
+                    CredentialRequest::<P384Sha384>::deserialize(&request).map_err(to_py_err)?;
                 let result = ServerLogin::<P384Sha384>::start(
                     &mut rng,
                     setup,
@@ -273,8 +256,7 @@ impl OpaqueServer {
             }
             (ServerSetupInner::P521Sha512(setup), ServerRegistrationInner::P521Sha512(reg)) => {
                 let request =
-                    CredentialRequest::<P521Sha512>::deserialize(&request)
-                        .map_err(to_py_err)?;
+                    CredentialRequest::<P521Sha512>::deserialize(&request).map_err(to_py_err)?;
                 let result = ServerLogin::<P521Sha512>::start(
                     &mut rng,
                     setup,
@@ -292,7 +274,10 @@ impl OpaqueServer {
                     },
                 ))
             }
-            (ServerSetupInner::MlKem768Ristretto255Sha512(setup), ServerRegistrationInner::MlKem768Ristretto255Sha512(reg)) => {
+            (
+                ServerSetupInner::MlKem768Ristretto255Sha512(setup),
+                ServerRegistrationInner::MlKem768Ristretto255Sha512(reg),
+            ) => {
                 let request =
                     CredentialRequest::<MlKem768Ristretto255Sha512>::deserialize(&request)
                         .map_err(to_py_err)?;
@@ -309,7 +294,9 @@ impl OpaqueServer {
                 Ok((
                     py_utils::to_pybytes(py, &message),
                     ServerLoginState {
-                        inner: ServerLoginStateInner::MlKem768Ristretto255Sha512(Some(result.state)),
+                        inner: ServerLoginStateInner::MlKem768Ristretto255Sha512(Some(
+                            result.state,
+                        )),
                     },
                 ))
             }
@@ -361,27 +348,24 @@ impl OpaqueServer {
             }
             SuiteId::P256Sha256 => {
                 let state = state.take_p256()?;
-                let finalization =
-                    CredentialFinalization::<P256Sha256>::deserialize(&finalization)
-                        .map_err(to_py_err)?;
+                let finalization = CredentialFinalization::<P256Sha256>::deserialize(&finalization)
+                    .map_err(to_py_err)?;
                 let result = state.finish(finalization, parameters).map_err(to_py_err)?;
                 let session_key = result.session_key.to_vec();
                 Ok(py_utils::to_pybytes(py, &session_key))
             }
             SuiteId::P384Sha384 => {
                 let state = state.take_p384()?;
-                let finalization =
-                    CredentialFinalization::<P384Sha384>::deserialize(&finalization)
-                        .map_err(to_py_err)?;
+                let finalization = CredentialFinalization::<P384Sha384>::deserialize(&finalization)
+                    .map_err(to_py_err)?;
                 let result = state.finish(finalization, parameters).map_err(to_py_err)?;
                 let session_key = result.session_key.to_vec();
                 Ok(py_utils::to_pybytes(py, &session_key))
             }
             SuiteId::P521Sha512 => {
                 let state = state.take_p521()?;
-                let finalization =
-                    CredentialFinalization::<P521Sha512>::deserialize(&finalization)
-                        .map_err(to_py_err)?;
+                let finalization = CredentialFinalization::<P521Sha512>::deserialize(&finalization)
+                    .map_err(to_py_err)?;
                 let result = state.finish(finalization, parameters).map_err(to_py_err)?;
                 let session_key = result.session_key.to_vec();
                 Ok(py_utils::to_pybytes(py, &session_key))
@@ -389,8 +373,10 @@ impl OpaqueServer {
             SuiteId::MlKem768Ristretto255Sha512 => {
                 let state = state.take_kem()?;
                 let finalization =
-                    CredentialFinalization::<MlKem768Ristretto255Sha512>::deserialize(&finalization)
-                        .map_err(to_py_err)?;
+                    CredentialFinalization::<MlKem768Ristretto255Sha512>::deserialize(
+                        &finalization,
+                    )
+                    .map_err(to_py_err)?;
                 let result = state.finish(finalization, parameters).map_err(to_py_err)?;
                 let session_key = result.session_key.to_vec();
                 Ok(py_utils::to_pybytes(py, &session_key))

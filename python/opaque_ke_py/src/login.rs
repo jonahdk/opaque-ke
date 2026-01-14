@@ -8,11 +8,10 @@ use pyo3::types::{PyBytes, PyModule};
 
 use crate::errors::{invalid_login_err, invalid_state_err, to_py_err};
 use crate::py_utils;
-use crate::suite::{parse_suite, Ristretto255Sha512, SuiteId};
-use crate::suite::MlKem768Ristretto255Sha512;
-use crate::suite::P256Sha256;
-use crate::suite::P384Sha384;
-use crate::suite::P521Sha512;
+use crate::suite::{
+    MlKem768Ristretto255Sha512, P256Sha256, P384Sha384, P521Sha512, Ristretto255Sha512, SuiteId,
+    parse_suite,
+};
 use crate::types::{
     ClientLoginFinishParameters as PyClientLoginFinishParameters, ClientLoginState,
     ClientLoginStateInner, ServerLoginParameters as PyServerLoginParameters, ServerLoginState,
@@ -41,8 +40,8 @@ fn client_start_login(
     let mut rng = OsRng;
     match suite {
         SuiteId::Ristretto255Sha512 => {
-            let result = ClientLogin::<Ristretto255Sha512>::start(&mut rng, &password)
-                .map_err(to_py_err)?;
+            let result =
+                ClientLogin::<Ristretto255Sha512>::start(&mut rng, &password).map_err(to_py_err)?;
             let message = result.message.serialize().to_vec();
             Ok((
                 py_utils::to_pybytes(py, &message),
@@ -52,8 +51,8 @@ fn client_start_login(
             ))
         }
         SuiteId::P256Sha256 => {
-            let result = ClientLogin::<P256Sha256>::start(&mut rng, &password)
-                .map_err(to_py_err)?;
+            let result =
+                ClientLogin::<P256Sha256>::start(&mut rng, &password).map_err(to_py_err)?;
             let message = result.message.serialize().to_vec();
             Ok((
                 py_utils::to_pybytes(py, &message),
@@ -63,8 +62,8 @@ fn client_start_login(
             ))
         }
         SuiteId::P384Sha384 => {
-            let result = ClientLogin::<P384Sha384>::start(&mut rng, &password)
-                .map_err(to_py_err)?;
+            let result =
+                ClientLogin::<P384Sha384>::start(&mut rng, &password).map_err(to_py_err)?;
             let message = result.message.serialize().to_vec();
             Ok((
                 py_utils::to_pybytes(py, &message),
@@ -74,8 +73,8 @@ fn client_start_login(
             ))
         }
         SuiteId::P521Sha512 => {
-            let result = ClientLogin::<P521Sha512>::start(&mut rng, &password)
-                .map_err(to_py_err)?;
+            let result =
+                ClientLogin::<P521Sha512>::start(&mut rng, &password).map_err(to_py_err)?;
             let message = result.message.serialize().to_vec();
             Ok((
                 py_utils::to_pybytes(py, &message),
@@ -140,9 +139,8 @@ fn client_finish_login(
     match state_suite {
         SuiteId::Ristretto255Sha512 => {
             let state = state.take_ristretto()?;
-            let response =
-                CredentialResponse::<Ristretto255Sha512>::deserialize(&response)
-                    .map_err(to_py_err)?;
+            let response = CredentialResponse::<Ristretto255Sha512>::deserialize(&response)
+                .map_err(to_py_err)?;
             let result = state
                 .finish(&mut rng, &password, response, finish_params)
                 .map_err(to_py_err)?;
@@ -164,8 +162,8 @@ fn client_finish_login(
         }
         SuiteId::P256Sha256 => {
             let state = state.take_p256()?;
-            let response = CredentialResponse::<P256Sha256>::deserialize(&response)
-                .map_err(to_py_err)?;
+            let response =
+                CredentialResponse::<P256Sha256>::deserialize(&response).map_err(to_py_err)?;
             let result = state
                 .finish(&mut rng, &password, response, finish_params)
                 .map_err(to_py_err)?;
@@ -187,8 +185,8 @@ fn client_finish_login(
         }
         SuiteId::P384Sha384 => {
             let state = state.take_p384()?;
-            let response = CredentialResponse::<P384Sha384>::deserialize(&response)
-                .map_err(to_py_err)?;
+            let response =
+                CredentialResponse::<P384Sha384>::deserialize(&response).map_err(to_py_err)?;
             let result = state
                 .finish(&mut rng, &password, response, finish_params)
                 .map_err(to_py_err)?;
@@ -210,8 +208,8 @@ fn client_finish_login(
         }
         SuiteId::P521Sha512 => {
             let state = state.take_p521()?;
-            let response = CredentialResponse::<P521Sha512>::deserialize(&response)
-                .map_err(to_py_err)?;
+            let response =
+                CredentialResponse::<P521Sha512>::deserialize(&response).map_err(to_py_err)?;
             let result = state
                 .finish(&mut rng, &password, response, finish_params)
                 .map_err(to_py_err)?;
@@ -233,9 +231,8 @@ fn client_finish_login(
         }
         SuiteId::MlKem768Ristretto255Sha512 => {
             let state = state.take_kem()?;
-            let response =
-                CredentialResponse::<MlKem768Ristretto255Sha512>::deserialize(&response)
-                    .map_err(to_py_err)?;
+            let response = CredentialResponse::<MlKem768Ristretto255Sha512>::deserialize(&response)
+                .map_err(to_py_err)?;
             let result = state
                 .finish(&mut rng, &password, response, finish_params)
                 .map_err(to_py_err)?;
@@ -300,10 +297,12 @@ fn server_start_login(
         ServerLoginParameters::default()
     };
     match (&server_setup.inner, &password_file.inner) {
-        (ServerSetupInner::Ristretto255Sha512(setup), ServerRegistrationInner::Ristretto255Sha512(reg)) => {
-            let request =
-                CredentialRequest::<Ristretto255Sha512>::deserialize(&request)
-                    .map_err(to_py_err)?;
+        (
+            ServerSetupInner::Ristretto255Sha512(setup),
+            ServerRegistrationInner::Ristretto255Sha512(reg),
+        ) => {
+            let request = CredentialRequest::<Ristretto255Sha512>::deserialize(&request)
+                .map_err(to_py_err)?;
             let result = ServerLogin::<Ristretto255Sha512>::start(
                 &mut rng,
                 setup,
@@ -381,7 +380,10 @@ fn server_start_login(
                 },
             ))
         }
-        (ServerSetupInner::MlKem768Ristretto255Sha512(setup), ServerRegistrationInner::MlKem768Ristretto255Sha512(reg)) => {
+        (
+            ServerSetupInner::MlKem768Ristretto255Sha512(setup),
+            ServerRegistrationInner::MlKem768Ristretto255Sha512(reg),
+        ) => {
             let request = CredentialRequest::<MlKem768Ristretto255Sha512>::deserialize(&request)
                 .map_err(to_py_err)?;
             let result = ServerLogin::<MlKem768Ristretto255Sha512>::start(

@@ -102,6 +102,7 @@ regex = "1"
 sha2 = { version = "0.10", default-features = false }
 thiserror = "2"
 # MSRV
+home = "=0.5.11" # home 0.5.12 requires rustc 1.88
 rustyline = "17"
 scrypt = "0.11"
 serde_json = "1"

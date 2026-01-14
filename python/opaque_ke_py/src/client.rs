@@ -8,14 +8,14 @@ use pyo3::types::{PyBytes, PyModule};
 
 use crate::errors::{invalid_login_err, invalid_state_err, to_py_err};
 use crate::py_utils;
-use crate::suite::{parse_suite, Ristretto255Sha512, SuiteId};
-use crate::suite::MlKem768Ristretto255Sha512;
-use crate::suite::P256Sha256;
-use crate::suite::P384Sha384;
-use crate::suite::P521Sha512;
+use crate::suite::{
+    MlKem768Ristretto255Sha512, P256Sha256, P384Sha384, P521Sha512, Ristretto255Sha512, SuiteId,
+    parse_suite,
+};
 use crate::types::{
     ClientLoginFinishParameters as PyClientLoginFinishParameters, ClientLoginState,
-    ClientLoginStateInner, ClientRegistrationFinishParameters as PyClientRegistrationFinishParameters,
+    ClientLoginStateInner,
+    ClientRegistrationFinishParameters as PyClientRegistrationFinishParameters,
     ClientRegistrationState, ClientRegistrationStateInner,
 };
 
@@ -41,9 +41,8 @@ impl OpaqueClient {
         let mut rng = OsRng;
         match self.suite {
             SuiteId::Ristretto255Sha512 => {
-                let result =
-                    ClientRegistration::<Ristretto255Sha512>::start(&mut rng, &password)
-                        .map_err(to_py_err)?;
+                let result = ClientRegistration::<Ristretto255Sha512>::start(&mut rng, &password)
+                    .map_err(to_py_err)?;
                 let message = result.message.serialize().to_vec();
                 Ok((
                     py_utils::to_pybytes(py, &message),
@@ -86,18 +85,16 @@ impl OpaqueClient {
                 ))
             }
             SuiteId::MlKem768Ristretto255Sha512 => {
-                let result = ClientRegistration::<MlKem768Ristretto255Sha512>::start(
-                    &mut rng,
-                    &password,
-                )
-                .map_err(to_py_err)?;
+                let result =
+                    ClientRegistration::<MlKem768Ristretto255Sha512>::start(&mut rng, &password)
+                        .map_err(to_py_err)?;
                 let message = result.message.serialize().to_vec();
                 Ok((
                     py_utils::to_pybytes(py, &message),
                     ClientRegistrationState {
-                        inner: ClientRegistrationStateInner::MlKem768Ristretto255Sha512(
-                            Some(result.state),
-                        ),
+                        inner: ClientRegistrationStateInner::MlKem768Ristretto255Sha512(Some(
+                            result.state,
+                        )),
                     },
                 ))
             }
@@ -139,9 +136,8 @@ impl OpaqueClient {
         match self.suite {
             SuiteId::Ristretto255Sha512 => {
                 let state = state.take_ristretto()?;
-                let response =
-                    RegistrationResponse::<Ristretto255Sha512>::deserialize(&response)
-                        .map_err(to_py_err)?;
+                let response = RegistrationResponse::<Ristretto255Sha512>::deserialize(&response)
+                    .map_err(to_py_err)?;
                 let result = state
                     .finish(&mut rng, &password, response, finish_params)
                     .map_err(to_py_err)?;
@@ -231,8 +227,8 @@ impl OpaqueClient {
                 ))
             }
             SuiteId::P256Sha256 => {
-                let result = ClientLogin::<P256Sha256>::start(&mut rng, &password)
-                    .map_err(to_py_err)?;
+                let result =
+                    ClientLogin::<P256Sha256>::start(&mut rng, &password).map_err(to_py_err)?;
                 let message = result.message.serialize().to_vec();
                 Ok((
                     py_utils::to_pybytes(py, &message),
@@ -242,8 +238,8 @@ impl OpaqueClient {
                 ))
             }
             SuiteId::P384Sha384 => {
-                let result = ClientLogin::<P384Sha384>::start(&mut rng, &password)
-                    .map_err(to_py_err)?;
+                let result =
+                    ClientLogin::<P384Sha384>::start(&mut rng, &password).map_err(to_py_err)?;
                 let message = result.message.serialize().to_vec();
                 Ok((
                     py_utils::to_pybytes(py, &message),
@@ -253,8 +249,8 @@ impl OpaqueClient {
                 ))
             }
             SuiteId::P521Sha512 => {
-                let result = ClientLogin::<P521Sha512>::start(&mut rng, &password)
-                    .map_err(to_py_err)?;
+                let result =
+                    ClientLogin::<P521Sha512>::start(&mut rng, &password).map_err(to_py_err)?;
                 let message = result.message.serialize().to_vec();
                 Ok((
                     py_utils::to_pybytes(py, &message),
@@ -270,7 +266,9 @@ impl OpaqueClient {
                 Ok((
                     py_utils::to_pybytes(py, &message),
                     ClientLoginState {
-                        inner: ClientLoginStateInner::MlKem768Ristretto255Sha512(Some(result.state)),
+                        inner: ClientLoginStateInner::MlKem768Ristretto255Sha512(Some(
+                            result.state,
+                        )),
                     },
                 ))
             }
@@ -341,8 +339,8 @@ impl OpaqueClient {
             }
             SuiteId::P256Sha256 => {
                 let state = state.take_p256()?;
-                let response = CredentialResponse::<P256Sha256>::deserialize(&response)
-                    .map_err(to_py_err)?;
+                let response =
+                    CredentialResponse::<P256Sha256>::deserialize(&response).map_err(to_py_err)?;
                 let result = state
                     .finish(&mut rng, &password, response, finish_params)
                     .map_err(to_py_err)?;
@@ -364,8 +362,8 @@ impl OpaqueClient {
             }
             SuiteId::P384Sha384 => {
                 let state = state.take_p384()?;
-                let response = CredentialResponse::<P384Sha384>::deserialize(&response)
-                    .map_err(to_py_err)?;
+                let response =
+                    CredentialResponse::<P384Sha384>::deserialize(&response).map_err(to_py_err)?;
                 let result = state
                     .finish(&mut rng, &password, response, finish_params)
                     .map_err(to_py_err)?;
@@ -387,8 +385,8 @@ impl OpaqueClient {
             }
             SuiteId::P521Sha512 => {
                 let state = state.take_p521()?;
-                let response = CredentialResponse::<P521Sha512>::deserialize(&response)
-                    .map_err(to_py_err)?;
+                let response =
+                    CredentialResponse::<P521Sha512>::deserialize(&response).map_err(to_py_err)?;
                 let result = state
                     .finish(&mut rng, &password, response, finish_params)
                     .map_err(to_py_err)?;

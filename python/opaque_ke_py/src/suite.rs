@@ -1,11 +1,9 @@
 use opaque_ke::argon2::Argon2;
-use opaque_ke::{CipherSuite, Ristretto255, TripleDh};
-use opaque_ke::{ml_kem::MlKem768, TripleDhKem};
+use opaque_ke::ml_kem::MlKem768;
+use opaque_ke::{CipherSuite, Ristretto255, TripleDh, TripleDhKem};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use sha2::Sha256;
-use sha2::Sha384;
-use sha2::Sha512;
+use sha2::{Sha256, Sha384, Sha512};
 
 pub(crate) const RISTRETTO255_SHA512: &str = "ristretto255_sha512";
 pub(crate) const P256_SHA256: &str = "p256_sha256";

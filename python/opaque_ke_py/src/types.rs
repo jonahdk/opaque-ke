@@ -10,11 +10,10 @@ use pyo3::types::{PyBytes, PyModule};
 
 use crate::errors::{invalid_state_err, to_py_err};
 use crate::py_utils;
-use crate::suite::{parse_suite, Ristretto255Sha512, SuiteId};
-use crate::suite::MlKem768Ristretto255Sha512;
-use crate::suite::P256Sha256;
-use crate::suite::P384Sha384;
-use crate::suite::P521Sha512;
+use crate::suite::{
+    MlKem768Ristretto255Sha512, P256Sha256, P384Sha384, P521Sha512, Ristretto255Sha512, SuiteId,
+    parse_suite,
+};
 
 #[pyclass(unsendable)]
 #[derive(Clone)]
@@ -248,9 +247,7 @@ impl ServerSetupInner {
             ServerSetupInner::P256Sha256(_) => SuiteId::P256Sha256,
             ServerSetupInner::P384Sha384(_) => SuiteId::P384Sha384,
             ServerSetupInner::P521Sha512(_) => SuiteId::P521Sha512,
-            ServerSetupInner::MlKem768Ristretto255Sha512(_) => {
-                SuiteId::MlKem768Ristretto255Sha512
-            }
+            ServerSetupInner::MlKem768Ristretto255Sha512(_) => SuiteId::MlKem768Ristretto255Sha512,
         }
     }
 }
@@ -267,11 +264,9 @@ impl ServerSetup {
         let suite = parse_suite(suite)?;
         let mut rng = OsRng;
         let inner = match suite {
-            SuiteId::Ristretto255Sha512 => {
-                ServerSetupInner::Ristretto255Sha512(OpaqueServerSetup::<Ristretto255Sha512>::new(
-                    &mut rng,
-                ))
-            }
+            SuiteId::Ristretto255Sha512 => ServerSetupInner::Ristretto255Sha512(
+                OpaqueServerSetup::<Ristretto255Sha512>::new(&mut rng),
+            ),
             SuiteId::P256Sha256 => {
                 ServerSetupInner::P256Sha256(OpaqueServerSetup::<P256Sha256>::new(&mut rng))
             }
@@ -282,9 +277,9 @@ impl ServerSetup {
                 ServerSetupInner::P521Sha512(OpaqueServerSetup::<P521Sha512>::new(&mut rng))
             }
             SuiteId::MlKem768Ristretto255Sha512 => {
-                ServerSetupInner::MlKem768Ristretto255Sha512(
-                    OpaqueServerSetup::<MlKem768Ristretto255Sha512>::new(&mut rng),
-                )
+                ServerSetupInner::MlKem768Ristretto255Sha512(OpaqueServerSetup::<
+                    MlKem768Ristretto255Sha512,
+                >::new(&mut rng))
             }
         };
         Ok(Self { inner })
@@ -307,12 +302,10 @@ impl ServerSetup {
             SuiteId::P521Sha512 => ServerSetupInner::P521Sha512(
                 OpaqueServerSetup::<P521Sha512>::deserialize(&data).map_err(to_py_err)?,
             ),
-            SuiteId::MlKem768Ristretto255Sha512 => {
-                ServerSetupInner::MlKem768Ristretto255Sha512(
-                    OpaqueServerSetup::<MlKem768Ristretto255Sha512>::deserialize(&data)
-                        .map_err(to_py_err)?,
-                )
-            }
+            SuiteId::MlKem768Ristretto255Sha512 => ServerSetupInner::MlKem768Ristretto255Sha512(
+                OpaqueServerSetup::<MlKem768Ristretto255Sha512>::deserialize(&data)
+                    .map_err(to_py_err)?,
+            ),
         };
         Ok(Self { inner })
     }
@@ -398,7 +391,9 @@ impl ServerRegistration {
             ServerRegistrationInner::P256Sha256(inner) => inner.serialize().to_vec(),
             ServerRegistrationInner::P384Sha384(inner) => inner.serialize().to_vec(),
             ServerRegistrationInner::P521Sha512(inner) => inner.serialize().to_vec(),
-            ServerRegistrationInner::MlKem768Ristretto255Sha512(inner) => inner.serialize().to_vec(),
+            ServerRegistrationInner::MlKem768Ristretto255Sha512(inner) => {
+                inner.serialize().to_vec()
+            }
         };
         Ok(py_utils::to_pybytes(py, &serialized))
     }
@@ -444,18 +439,18 @@ impl ClientRegistrationState {
     fn deserialize(data: Vec<u8>, suite: Option<&str>) -> PyResult<Self> {
         let suite = parse_suite(suite)?;
         let inner = match suite {
-            SuiteId::Ristretto255Sha512 => ClientRegistrationStateInner::Ristretto255Sha512(
-                Some(ClientRegistration::<Ristretto255Sha512>::deserialize(&data).map_err(to_py_err)?),
-            ),
-            SuiteId::P256Sha256 => ClientRegistrationStateInner::P256Sha256(
-                Some(ClientRegistration::<P256Sha256>::deserialize(&data).map_err(to_py_err)?),
-            ),
-            SuiteId::P384Sha384 => ClientRegistrationStateInner::P384Sha384(
-                Some(ClientRegistration::<P384Sha384>::deserialize(&data).map_err(to_py_err)?),
-            ),
-            SuiteId::P521Sha512 => ClientRegistrationStateInner::P521Sha512(
-                Some(ClientRegistration::<P521Sha512>::deserialize(&data).map_err(to_py_err)?),
-            ),
+            SuiteId::Ristretto255Sha512 => ClientRegistrationStateInner::Ristretto255Sha512(Some(
+                ClientRegistration::<Ristretto255Sha512>::deserialize(&data).map_err(to_py_err)?,
+            )),
+            SuiteId::P256Sha256 => ClientRegistrationStateInner::P256Sha256(Some(
+                ClientRegistration::<P256Sha256>::deserialize(&data).map_err(to_py_err)?,
+            )),
+            SuiteId::P384Sha384 => ClientRegistrationStateInner::P384Sha384(Some(
+                ClientRegistration::<P384Sha384>::deserialize(&data).map_err(to_py_err)?,
+            )),
+            SuiteId::P521Sha512 => ClientRegistrationStateInner::P521Sha512(Some(
+                ClientRegistration::<P521Sha512>::deserialize(&data).map_err(to_py_err)?,
+            )),
             SuiteId::MlKem768Ristretto255Sha512 => {
                 ClientRegistrationStateInner::MlKem768Ristretto255Sha512(Some(
                     ClientRegistration::<MlKem768Ristretto255Sha512>::deserialize(&data)
@@ -547,9 +542,7 @@ impl ClientRegistrationState {
         }
     }
 
-    pub(crate) fn take_kem(
-        &mut self,
-    ) -> PyResult<ClientRegistration<MlKem768Ristretto255Sha512>> {
+    pub(crate) fn take_kem(&mut self) -> PyResult<ClientRegistration<MlKem768Ristretto255Sha512>> {
         match &mut self.inner {
             ClientRegistrationStateInner::MlKem768Ristretto255Sha512(inner) => inner
                 .take()

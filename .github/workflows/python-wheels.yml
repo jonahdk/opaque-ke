@@ -45,14 +45,23 @@ jobs:
           python-version: ${{ (matrix.python-version == '3.13' || matrix.python-version == '3.14') && '3.12' || matrix.python-version }}
           cache: 'pip'
 
-      - name: Build wheels
-        uses: PyO3/maturin-action@v1
-        with:
-          python-version: ${{ matrix.python-version }}
-          working-directory: python/opaque_ke_py
-          target: ${{ matrix.target }}
-          manylinux: ${{ matrix.manylinux }}
-          args: --release --out dist
+      - name: Create maturin venv and build wheels (Unix)
+        if: runner.os != 'Windows'
+        working-directory: python/opaque_ke_py
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install -U pip
+          .venv/bin/python -m pip install maturin
+          .venv/bin/python -m maturin build --release --out dist --manylinux ${{ matrix.manylinux }} --target ${{ matrix.target }}
+
+      - name: Create maturin venv and build wheels (Windows)
+        if: runner.os == 'Windows'
+        working-directory: python/opaque_ke_py
+        run: |
+          python -m venv .venv
+          .\\.venv\\Scripts\\python -m pip install -U pip
+          .\\.venv\\Scripts\\python -m pip install maturin
+          .\\.venv\\Scripts\\python -m maturin build --release --out dist --target ${{ matrix.target }}
 
       - name: Upload wheel artifacts
         uses: actions/upload-artifact@v4
@@ -78,12 +87,13 @@ jobs:
           python-version: "3.9"
           cache: 'pip'
 
-      - name: Build sdist
-        uses: PyO3/maturin-action@v1
-        with:
-          python-version: "3.9"
-          working-directory: python/opaque_ke_py
-          args: --sdist --out dist
+      - name: Create maturin venv and build sdist
+        working-directory: python/opaque_ke_py
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install -U pip
+          .venv/bin/python -m pip install maturin
+          .venv/bin/python -m maturin build --sdist --out dist
 
       - name: Upload sdist artifact
         uses: actions/upload-artifact@v4

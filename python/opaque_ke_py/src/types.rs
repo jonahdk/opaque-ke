@@ -260,8 +260,8 @@ pub struct ServerSetup {
 #[pymethods]
 impl ServerSetup {
     #[new]
-    fn new(suite: Option<&str>) -> PyResult<Self> {
-        let suite = parse_suite(suite)?;
+    fn new(suite: Option<String>) -> PyResult<Self> {
+        let suite = parse_suite(suite.as_deref())?;
         let mut rng = OsRng;
         let inner = match suite {
             SuiteId::Ristretto255Sha512 => ServerSetupInner::Ristretto255Sha512(
@@ -287,8 +287,8 @@ impl ServerSetup {
 
     #[staticmethod]
     #[pyo3(signature = (data, suite=None))]
-    fn deserialize(data: Vec<u8>, suite: Option<&str>) -> PyResult<Self> {
-        let suite = parse_suite(suite)?;
+    fn deserialize(data: Vec<u8>, suite: Option<String>) -> PyResult<Self> {
+        let suite = parse_suite(suite.as_deref())?;
         let inner = match suite {
             SuiteId::Ristretto255Sha512 => ServerSetupInner::Ristretto255Sha512(
                 OpaqueServerSetup::<Ristretto255Sha512>::deserialize(&data).map_err(to_py_err)?,
@@ -359,8 +359,8 @@ pub struct ServerRegistration {
 impl ServerRegistration {
     #[staticmethod]
     #[pyo3(signature = (data, suite=None))]
-    fn deserialize(data: Vec<u8>, suite: Option<&str>) -> PyResult<Self> {
-        let suite = parse_suite(suite)?;
+    fn deserialize(data: Vec<u8>, suite: Option<String>) -> PyResult<Self> {
+        let suite = parse_suite(suite.as_deref())?;
         let inner = match suite {
             SuiteId::Ristretto255Sha512 => ServerRegistrationInner::Ristretto255Sha512(
                 OpaqueServerRegistration::<Ristretto255Sha512>::deserialize(&data)
@@ -436,8 +436,8 @@ pub struct ClientRegistrationState {
 impl ClientRegistrationState {
     #[staticmethod]
     #[pyo3(signature = (data, suite=None))]
-    fn deserialize(data: Vec<u8>, suite: Option<&str>) -> PyResult<Self> {
-        let suite = parse_suite(suite)?;
+    fn deserialize(data: Vec<u8>, suite: Option<String>) -> PyResult<Self> {
+        let suite = parse_suite(suite.as_deref())?;
         let inner = match suite {
             SuiteId::Ristretto255Sha512 => ClientRegistrationStateInner::Ristretto255Sha512(Some(
                 ClientRegistration::<Ristretto255Sha512>::deserialize(&data).map_err(to_py_err)?,
@@ -585,8 +585,8 @@ pub struct ClientLoginState {
 impl ClientLoginState {
     #[staticmethod]
     #[pyo3(signature = (data, suite=None))]
-    fn deserialize(data: Vec<u8>, suite: Option<&str>) -> PyResult<Self> {
-        let suite = parse_suite(suite)?;
+    fn deserialize(data: Vec<u8>, suite: Option<String>) -> PyResult<Self> {
+        let suite = parse_suite(suite.as_deref())?;
         let inner = match suite {
             SuiteId::Ristretto255Sha512 => ClientLoginStateInner::Ristretto255Sha512(Some(
                 ClientLogin::<Ristretto255Sha512>::deserialize(&data).map_err(to_py_err)?,
@@ -734,8 +734,8 @@ pub struct ServerLoginState {
 impl ServerLoginState {
     #[staticmethod]
     #[pyo3(signature = (data, suite=None))]
-    fn deserialize(data: Vec<u8>, suite: Option<&str>) -> PyResult<Self> {
-        let suite = parse_suite(suite)?;
+    fn deserialize(data: Vec<u8>, suite: Option<String>) -> PyResult<Self> {
+        let suite = parse_suite(suite.as_deref())?;
         let inner = match suite {
             SuiteId::Ristretto255Sha512 => ServerLoginStateInner::Ristretto255Sha512(Some(
                 ServerLogin::<Ristretto255Sha512>::deserialize(&data).map_err(to_py_err)?,

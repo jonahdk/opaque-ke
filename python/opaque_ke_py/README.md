@@ -54,7 +54,8 @@ assert session_key == server_session_key
 - Wheels target CPython 3.9 through 3.14 on Linux, macOS, and Windows for AMD64 and ARM64.
 - If no suite is provided, the default is `ristretto255_sha512`.
 - Protocol messages and state blobs are bytes in Python. Use base64 helpers for transport:
-  `opaque_ke.encoding.encode_b64` and `opaque_ke.encoding.decode_b64`.
+  `opaque_ke.encoding.encode_b64` returns URL-safe base64 without padding, and
+  `opaque_ke.encoding.decode_b64` accepts URL-safe or standard base64 with or without padding.
 - Key stretching uses Argon2 and is always enabled in the bindings.
 - State objects are single-use. Reusing a state raises `InvalidStateError`.
 - Errors raised by the core library are mapped to `opaque_ke.errors` exceptions.

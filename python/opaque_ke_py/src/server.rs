@@ -26,9 +26,9 @@ pub struct OpaqueServer {
 #[pymethods]
 impl OpaqueServer {
     #[new]
-    fn new(suite: Option<&str>) -> PyResult<Self> {
+    fn new(suite: Option<String>) -> PyResult<Self> {
         Ok(Self {
-            suite: parse_suite(suite)?,
+            suite: parse_suite(suite.as_deref())?,
         })
     }
 

@@ -34,9 +34,9 @@ fn ensure_suite(expected: SuiteId, actual: SuiteId, label: &str) -> PyResult<()>
 fn client_start_login(
     py: Python<'_>,
     password: Vec<u8>,
-    suite: Option<&str>,
+    suite: Option<String>,
 ) -> PyResult<(Py<PyBytes>, ClientLoginState)> {
-    let suite = parse_suite(suite)?;
+    let suite = parse_suite(suite.as_deref())?;
     let mut rng = OsRng;
     match suite {
         SuiteId::Ristretto255Sha512 => {
@@ -105,11 +105,11 @@ fn client_finish_login(
     password: Vec<u8>,
     response: Vec<u8>,
     params: Option<PyRef<'_, PyClientLoginFinishParameters>>,
-    suite: Option<&str>,
+    suite: Option<String>,
 ) -> PyResult<(Py<PyBytes>, Py<PyBytes>, Py<PyBytes>, Py<PyBytes>)> {
     let state_suite = state.suite_id();
     if let Some(requested) = suite {
-        let requested = parse_suite(Some(requested))?;
+        let requested = parse_suite(Some(requested.as_str()))?;
         ensure_suite(requested, state_suite, "ClientLoginState")?;
     }
     let identifiers = params
@@ -304,7 +304,7 @@ fn server_start_login(
     request: Vec<u8>,
     credential_identifier: Vec<u8>,
     params: Option<PyRef<'_, PyServerLoginParameters>>,
-    suite: Option<&str>,
+    suite: Option<String>,
 ) -> PyResult<(Py<PyBytes>, ServerLoginState)> {
     let setup_suite = server_setup.suite_id();
     let password_suite = password_file.suite_id();
@@ -314,7 +314,7 @@ fn server_start_login(
         ));
     }
     if let Some(requested) = suite {
-        let requested = parse_suite(Some(requested))?;
+        let requested = parse_suite(Some(requested.as_str()))?;
         ensure_suite(requested, setup_suite, "ServerSetup")?;
     }
     let mut rng = OsRng;
@@ -456,11 +456,11 @@ fn server_finish_login(
     mut state: PyRefMut<'_, ServerLoginState>,
     finalization: Vec<u8>,
     params: Option<PyRef<'_, PyServerLoginParameters>>,
-    suite: Option<&str>,
+    suite: Option<String>,
 ) -> PyResult<Py<PyBytes>> {
     let state_suite = state.suite_id();
     if let Some(requested) = suite {
-        let requested = parse_suite(Some(requested))?;
+        let requested = parse_suite(Some(requested.as_str()))?;
         ensure_suite(requested, state_suite, "ServerLoginState")?;
     }
     let identifiers = params

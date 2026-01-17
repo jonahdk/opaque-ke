@@ -34,9 +34,9 @@ fn ensure_suite(expected: SuiteId, actual: SuiteId, label: &str) -> PyResult<()>
 fn client_start_registration(
     py: Python<'_>,
     password: Vec<u8>,
-    suite: Option<&str>,
+    suite: Option<String>,
 ) -> PyResult<(Py<PyBytes>, ClientRegistrationState)> {
-    let suite = parse_suite(suite)?;
+    let suite = parse_suite(suite.as_deref())?;
     let mut rng = OsRng;
     match suite {
         SuiteId::Ristretto255Sha512 => {
@@ -108,11 +108,11 @@ fn client_finish_registration(
     password: Vec<u8>,
     response: Vec<u8>,
     params: Option<PyRef<'_, PyClientRegistrationFinishParameters>>,
-    suite: Option<&str>,
+    suite: Option<String>,
 ) -> PyResult<(Py<PyBytes>, Py<PyBytes>)> {
     let state_suite = state.suite_id();
     if let Some(requested) = suite {
-        let requested = parse_suite(Some(requested))?;
+        let requested = parse_suite(Some(requested.as_str()))?;
         ensure_suite(requested, state_suite, "ClientRegistrationState")?;
     }
     let identifiers = params
@@ -250,11 +250,11 @@ fn server_start_registration(
     server_setup: PyRef<'_, ServerSetup>,
     request: Vec<u8>,
     credential_identifier: Vec<u8>,
-    suite: Option<&str>,
+    suite: Option<String>,
 ) -> PyResult<Py<PyBytes>> {
     let setup_suite = server_setup.suite_id();
     if let Some(requested) = suite {
-        let requested = parse_suite(Some(requested))?;
+        let requested = parse_suite(Some(requested.as_str()))?;
         ensure_suite(requested, setup_suite, "ServerSetup")?;
     }
     match &server_setup.inner {
@@ -316,9 +316,9 @@ fn server_start_registration(
 #[pyo3(signature = (upload, suite=None))]
 fn server_finish_registration(
     upload: Vec<u8>,
-    suite: Option<&str>,
+    suite: Option<String>,
 ) -> PyResult<PyServerRegistration> {
-    let suite = parse_suite(suite)?;
+    let suite = parse_suite(suite.as_deref())?;
     match suite {
         SuiteId::Ristretto255Sha512 => {
             let upload = RegistrationUpload::<Ristretto255Sha512>::deserialize(&upload)

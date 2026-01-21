@@ -3,11 +3,11 @@ categories = ["cryptography"]
 description = "Python bindings for opaque-ke"
 edition = "2024"
 keywords = ["cryptography", "opaque", "passwords", "authentication", "python"]
-license = "Apache-2.0 OR MIT"
+license = "MIT"
 name = "opaque-ke-py"
 readme = "README.md"
 repository = "https://github.com/jonahdk/opaque-ke"
-version = "0.1.1"
+version = "0.1.2"
 
 [lib]
 crate-type = ["cdylib"]

@@ -74,6 +74,4 @@ improvements to the library.
 License
 -------
 
-This project is dual-licensed under either the [MIT license](./LICENSE-MIT)
-or the [Apache License, Version 2.0](./LICENSE-APACHE).
-You may select, at your option, one of the above-listed licenses.
+The upstream Rust project these bindings are based on (OPAQUE-KE) is dual-licensed under either the [MIT license](./LICENSE-MIT) or the [Apache 2.0 license](./LICENSE-APACHE). This fork uses the MIT license.

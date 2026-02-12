@@ -1,108 +1,70 @@
 name: Python Wheels
 
 on:
-  release:
-    types: [published]
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build-wheels:
+    name: Build ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          - name: linux-x86_64
+            os: ubuntu-latest
             python-version: "3.9"
             target: x86_64-unknown-linux-gnu
             manylinux: auto
-          - os: ubuntu-latest
+          - name: linux-aarch64
+            os: ubuntu-24.04-arm
             python-version: "3.9"
             target: aarch64-unknown-linux-gnu
             manylinux: auto
-          - os: windows-latest
+          - name: windows-x86_64
+            os: windows-latest
             python-version: "3.9"
             target: x86_64-pc-windows-msvc
-          - os: windows-latest
-            python-version: "3.9"
-            target: aarch64-pc-windows-msvc
-          - os: macos-13
+          - name: macos-x86_64
+            os: macos-13
             python-version: "3.9"
             target: x86_64-apple-darwin
-          - os: macos-14
+          - name: macos-aarch64
+            os: macos-14
             python-version: "3.9"
             target: aarch64-apple-darwin
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
 
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: ${{ (matrix.python-version == '3.13' || matrix.python-version == '3.14') && '3.12' || matrix.python-version }}
-          cache: 'pip'
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
 
-      - name: Create maturin venv and build wheels (Unix)
-        if: runner.os != 'Windows'
+      - name: Install maturin
+        run: python -m pip install -U pip maturin
+
+      - name: Build wheel (Linux)
+        if: runner.os == 'Linux'
         working-directory: python/opaque_ke_py
         run: |
-          python -m venv .venv
-          .venv/bin/python -m pip install -U pip
-          .venv/bin/python -m pip install maturin
-          .venv/bin/python -m maturin build --release --out dist --manylinux ${{ matrix.manylinux }} --target ${{ matrix.target }}
+          python -m maturin build --release --out dist --manylinux ${{ matrix.manylinux }} --target ${{ matrix.target }}
 
-      - name: Create maturin venv and build wheels (Windows)
-        if: runner.os == 'Windows'
+      - name: Build wheel (Non-Linux)
+        if: runner.os != 'Linux'
         working-directory: python/opaque_ke_py
-        run: |
-          python -m venv .venv
-          .\\.venv\\Scripts\\python -m pip install -U pip
-          .\\.venv\\Scripts\\python -m pip install maturin
-          .\\.venv\\Scripts\\python -m maturin build --release --out dist --target ${{ matrix.target }}
+        run: python -m maturin build --release --out dist --target ${{ matrix.target }}
 
       - name: Upload wheel artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: wheels-${{ matrix.os }}-py${{ matrix.python-version }}
-          path: python/opaque_ke_py/dist
-
-      - name: Upload wheels to release
-        if: github.event_name == 'release'
-        uses: softprops/action-gh-release@v2
-        with:
-          files: python/opaque_ke_py/dist/*
-
-  build-sdist:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.9"
-          cache: 'pip'
-
-      - name: Create maturin venv and build sdist
-        working-directory: python/opaque_ke_py
-        run: |
-          python -m venv .venv
-          .venv/bin/python -m pip install -U pip
-          .venv/bin/python -m pip install maturin
-          .venv/bin/python -m maturin build --sdist --out dist
-
-      - name: Upload sdist artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: sdist
-          path: python/opaque_ke_py/dist
-
-      - name: Upload sdist to release
-        if: github.event_name == 'release'
-        uses: softprops/action-gh-release@v2
-        with:
-          files: python/opaque_ke_py/dist/*
+          name: abi3-wheels-${{ matrix.name }}
+          path: python/opaque_ke_py/dist/*.whl

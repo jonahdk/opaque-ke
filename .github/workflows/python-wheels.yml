@@ -56,15 +56,15 @@ jobs:
         if: runner.os == 'Linux'
         working-directory: python/opaque_ke_py
         run: |
-          python -m maturin build --release --out dist --manylinux ${{ matrix.manylinux }} --target ${{ matrix.target }}
+          python -m maturin build --release --out ../dist --manylinux ${{ matrix.manylinux }} --target ${{ matrix.target }}
 
       - name: Build wheel (Non-Linux)
         if: runner.os != 'Linux'
         working-directory: python/opaque_ke_py
-        run: python -m maturin build --release --out dist --target ${{ matrix.target }}
+        run: python -m maturin build --release --out ../dist --target ${{ matrix.target }}
 
       - name: Upload wheel artifacts
         uses: actions/upload-artifact@v4
         with:
           name: abi3-wheels-${{ matrix.name }}
-          path: python/opaque_ke_py/dist/*.whl
+          path: python/dist/*.whl

@@ -8,6 +8,8 @@
 **/*.pyc
 **/__pycache__/
 **/dist/
+!python/dist/
+!python/dist/**
 **/node_modules/
 **/package-lock.json
 *.so

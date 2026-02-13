@@ -34,5 +34,5 @@ p521 = { version = "0.13.3", default-features = false, features = [
   "hash2curve",
   "voprf",
 ] }
-pyo3 = { version = "0.28", features = ["extension-module", "abi3-py311"] }
+pyo3 = { version = "0.28", features = ["extension-module", "abi3-py311", "generate-import-lib"] }
 sha2 = { version = "0.10", default-features = false }

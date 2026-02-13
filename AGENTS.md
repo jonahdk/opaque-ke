@@ -3,6 +3,10 @@
 ## Fork Purpose & Scope
 This fork’s primary goal is to add robust, user-friendly, and secure Python bindings using PyO3 while keeping the Rust core aligned with upstream.
 
+## Fork Purpose & Scope
+This fork's primary goal is to add robust, user-friendly, and secure Python bindings using PyO3 while keeping the Rust core aligned with upstream.
+
+
 ## Project Structure & Module Organization
 - `src/` holds the Rust library implementation and module tree.
 - `tests/` contains integration tests (e.g., `migration.rs`, `remote_key.rs`).

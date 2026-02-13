@@ -16,6 +16,7 @@ pub struct OpaqueServer {
 
 #[pymethods]
 impl OpaqueServer {
+    #[pyo3(signature = (suite=None))]
     #[new]
     fn new(suite: Option<String>) -> PyResult<Self> {
         Ok(Self {

@@ -57,7 +57,7 @@ fn client_start_registration(
 
 #[pyfunction(name = "finish_registration")]
 #[pyo3(signature = (state, password, response, params=None, suite=None))]
-fn client_finish_registration(
+pub(crate) fn client_finish_registration(
     py: Python<'_>,
     mut state: PyRefMut<'_, ClientRegistrationState>,
     password: Vec<u8>,

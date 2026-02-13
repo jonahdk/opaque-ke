@@ -57,7 +57,7 @@ fn client_start_login(
 
 #[pyfunction(name = "finish_login")]
 #[pyo3(signature = (state, password, response, params=None, suite=None))]
-fn client_finish_login(
+pub(crate) fn client_finish_login(
     py: Python<'_>,
     mut state: PyRefMut<'_, ClientLoginState>,
     password: Vec<u8>,
@@ -401,9 +401,7 @@ pub(crate) fn server_start_login(
                 },
             ))
         }
-        _ => Err(invalid_state_err(
-            "ServerSetup and ServerRegistration use different cipher suites",
-        )),
+        _ => unreachable!("mismatched ServerSetup/ServerRegistration suites"),
     }
 }
 

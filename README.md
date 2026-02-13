@@ -1,4 +1,4 @@
-##  The OPAQUE key exchange protocol ![Rust Build Status](https://github.com/jonahdk/opaque-ke/workflows/Rust%20CI/badge.svg) ![Python Build Status](https://github.com/jonahdk/opaque-ke/workflows/Python%20CI/badge.svg)
+##  The OPAQUE key exchange protocol ![Build Status](https://github.com/facebook/opaque-ke/workflows/Rust%20CI/badge.svg)
 
 [OPAQUE](https://eprint.iacr.org/2018/163.pdf) is an augmented password-authenticated key exchange protocol. It allows a client to authenticate to a server using a password, without ever having to expose the plaintext password to the server.
 
@@ -24,18 +24,6 @@ Add the following line to the dependencies of your `Cargo.toml`:
 ```
 opaque-ke = "4.1.0-pre.1"
 ```
-
-Python bindings
---------------------------
-
-The PyO3 bindings live in `python/opaque_ke_py/` and are built with `maturin`.
-From that directory, run:
-
-```
-maturin develop
-```
-
-See `docs/python.md` for API usage, state handling, and testing notes.
 
 ### Minimum Supported Rust Version
 
@@ -74,4 +62,6 @@ improvements to the library.
 License
 -------
 
-The upstream Rust project these bindings are based on (OPAQUE-KE) is dual-licensed under either the [MIT license](./LICENSE-MIT) or the [Apache 2.0 license](./LICENSE-APACHE). This fork uses the MIT license.
+This project is dual-licensed under either the [MIT license](./LICENSE-MIT)
+or the [Apache License, Version 2.0](./LICENSE-APACHE).
+You may select, at your option, one of the above-listed licenses.

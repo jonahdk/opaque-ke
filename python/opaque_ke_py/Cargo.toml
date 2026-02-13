@@ -7,7 +7,7 @@ license = "MIT"
 name = "opaque-ke-py"
 readme = "README.md"
 repository = "https://github.com/jonahdk/opaque-ke"
-version = "0.3.0"
+version = "0.1.2"
 [lib]
 crate-type = ["cdylib"]
 name = "opaque_ke"

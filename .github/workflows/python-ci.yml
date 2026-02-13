@@ -1,0 +1,44 @@
+name: Python CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Create maturin venv and test environment
+        working-directory: python/opaque_ke_py
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install -U pip
+          .venv/bin/python -m pip install maturin pytest
+
+      - name: Build and install ABI3 wheel for test Python version
+        working-directory: python/opaque_ke_py
+        run: |
+          .venv/bin/python -m maturin develop --release
+
+      - name: Run pytest
+        working-directory: python/opaque_ke_py
+        run: .venv/bin/python -m pytest

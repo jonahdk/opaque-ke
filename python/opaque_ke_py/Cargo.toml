@@ -1,0 +1,38 @@
+[package]
+categories = ["cryptography"]
+description = "Python bindings for opaque-ke"
+edition = "2024"
+keywords = ["cryptography", "opaque", "passwords", "authentication", "python"]
+license = "MIT"
+name = "opaque-ke-py"
+readme = "README.md"
+repository = "https://github.com/jonahdk/opaque-ke"
+version = "0.1.2"
+
+[lib]
+crate-type = ["cdylib"]
+name = "opaque_ke"
+
+[dependencies]
+base64 = { version = "0.22", default-features = false, features = ["alloc"] }
+opaque-ke = { path = "../..", default-features = false, features = [
+  "std",
+  "ristretto255",
+  "argon2",
+  "serde",
+  "kem",
+] }
+p256 = { version = "0.13", default-features = false, features = [
+  "hash2curve",
+  "voprf",
+] }
+p384 = { version = "0.13", default-features = false, features = [
+  "hash2curve",
+  "voprf",
+] }
+p521 = { version = "0.13.3", default-features = false, features = [
+  "hash2curve",
+  "voprf",
+] }
+pyo3 = { version = "0.28", features = ["extension-module", "abi3-py311"] }
+sha2 = { version = "0.10", default-features = false }

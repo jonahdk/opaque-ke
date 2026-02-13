@@ -1,0 +1,22 @@
+[build-system]
+build-backend = "maturin"
+requires = ["maturin>=1.4"]
+
+[project]
+dynamic = ["version"]
+name = "opaque_ke"
+requires-python = ">=3.11"
+
+[project.optional-dependencies]
+test = ["pytest>=7"]
+
+[tool.maturin]
+abi3 = true
+bindings = "pyo3"
+module-name = "opaque_ke"
+python-source = "python"
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+minversion = "7.0"
+testpaths = ["tests"]

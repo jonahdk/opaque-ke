@@ -22,6 +22,7 @@ use crate::serialization::SliceExt;
     derive(serde::Deserialize, serde::Serialize),
     serde(bound = "")
 )]
+#[allow(dead_code)]
 pub struct PreHash<H: OutputSizeUser>(pub Output<H>);
 
 impl<H: OutputSizeUser> Deserialize for PreHash<H> {

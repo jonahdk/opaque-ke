@@ -40,25 +40,13 @@ pub(crate) fn serialization_err(message: &str) -> PyErr {
 
 pub fn register(py: Python<'_>, parent: &Bound<'_, PyModule>) -> PyResult<()> {
     let module = py_utils::new_submodule(py, parent, "errors")?;
-    module.add("OpaqueError", py.get_type_bound::<OpaqueError>())?;
-    module.add(
-        "InvalidLoginError",
-        py.get_type_bound::<InvalidLoginError>(),
-    )?;
-    module.add(
-        "InvalidStateError",
-        py.get_type_bound::<InvalidStateError>(),
-    )?;
-    module.add(
-        "SerializationError",
-        py.get_type_bound::<SerializationError>(),
-    )?;
-    module.add("SizeError", py.get_type_bound::<SizeError>())?;
-    module.add(
-        "ReflectedValueError",
-        py.get_type_bound::<ReflectedValueError>(),
-    )?;
-    module.add("LibraryError", py.get_type_bound::<LibraryError>())?;
+    module.add("OpaqueError", py.get_type::<OpaqueError>())?;
+    module.add("InvalidLoginError", py.get_type::<InvalidLoginError>())?;
+    module.add("InvalidStateError", py.get_type::<InvalidStateError>())?;
+    module.add("SerializationError", py.get_type::<SerializationError>())?;
+    module.add("SizeError", py.get_type::<SizeError>())?;
+    module.add("ReflectedValueError", py.get_type::<ReflectedValueError>())?;
+    module.add("LibraryError", py.get_type::<LibraryError>())?;
     py_utils::add_submodule(py, parent, "errors", &module)?;
     Ok(())
 }

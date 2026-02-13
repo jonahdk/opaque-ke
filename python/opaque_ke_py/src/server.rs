@@ -46,7 +46,7 @@ impl OpaqueServer {
     }
 
     fn finish_registration(&self, upload: Vec<u8>) -> PyResult<PyServerRegistration> {
-        registration::server_finish_registration(upload, Some(self.suite.as_str().to_string()))
+        registration::server_finish_registration_with_suite(upload, self.suite)
     }
 
     fn start_login(

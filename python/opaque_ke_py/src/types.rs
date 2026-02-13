@@ -259,6 +259,7 @@ pub struct ServerSetup {
 
 #[pymethods]
 impl ServerSetup {
+    #[pyo3(signature = (suite=None))]
     #[new]
     fn new(suite: Option<String>) -> PyResult<Self> {
         let suite = parse_suite(suite.as_deref())?;

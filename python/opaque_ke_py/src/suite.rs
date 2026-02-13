@@ -33,11 +33,11 @@ impl SuiteId {
 
     pub(crate) fn available() -> Vec<&'static str> {
         vec![
-            RISTRETTO255_SHA512,
-            P256_SHA256,
-            P384_SHA384,
-            P521_SHA512,
-            ML_KEM_768_RISTRETTO255_SHA512,
+            SuiteId::Ristretto255Sha512.as_str(),
+            SuiteId::P256Sha256.as_str(),
+            SuiteId::P384Sha384.as_str(),
+            SuiteId::P521Sha512.as_str(),
+            SuiteId::MlKem768Ristretto255Sha512.as_str(),
         ]
     }
 }

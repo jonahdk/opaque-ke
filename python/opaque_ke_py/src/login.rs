@@ -20,6 +20,23 @@ use crate::types::{
 };
 use crate::{ensure_suite, py_utils};
 
+fn build_server_login_params<'a>(
+    params: Option<&'a PyRef<'a, PyServerLoginParameters>>,
+) -> ServerLoginParameters<'a, 'a> {
+    if let Some(params) = params {
+        let identifiers = params
+            .identifiers()
+            .map(|ids| ids.as_opaque())
+            .unwrap_or_default();
+        ServerLoginParameters {
+            context: params.context(),
+            identifiers,
+        }
+    } else {
+        ServerLoginParameters::default()
+    }
+}
+
 #[pyfunction(name = "start_login")]
 #[pyo3(signature = (password, suite=None))]
 fn client_start_login(
@@ -276,24 +293,7 @@ pub(crate) fn server_start_login(
         ensure_suite(requested, setup_suite, "ServerSetup")?;
     }
     let mut rng = OsRng;
-    let identifiers = params
-        .as_ref()
-        .and_then(|params| params.identifiers().cloned());
-    let opaque_identifiers = identifiers
-        .as_ref()
-        .map(|ids| ids.as_opaque())
-        .unwrap_or_default();
-    let context = params
-        .as_ref()
-        .and_then(|params| params.context().map(|value| value.to_vec()));
-    let parameters = if params.is_some() {
-        ServerLoginParameters {
-            context: context.as_deref(),
-            identifiers: opaque_identifiers,
-        }
-    } else {
-        ServerLoginParameters::default()
-    };
+    let parameters = build_server_login_params(params.as_ref());
     match (&server_setup.inner, &password_file.inner) {
         (
             ServerSetupInner::Ristretto255Sha512(setup),
@@ -419,24 +419,7 @@ pub(crate) fn server_finish_login(
         let requested = parse_suite(Some(requested.as_str()))?;
         ensure_suite(requested, state_suite, "ServerLoginState")?;
     }
-    let identifiers = params
-        .as_ref()
-        .and_then(|params| params.identifiers().cloned());
-    let opaque_identifiers = identifiers
-        .as_ref()
-        .map(|ids| ids.as_opaque())
-        .unwrap_or_default();
-    let context = params
-        .as_ref()
-        .and_then(|params| params.context().map(|value| value.to_vec()));
-    let parameters = if params.is_some() {
-        ServerLoginParameters {
-            context: context.as_deref(),
-            identifiers: opaque_identifiers,
-        }
-    } else {
-        ServerLoginParameters::default()
-    };
+    let parameters = build_server_login_params(params.as_ref());
     match state_suite {
         SuiteId::Ristretto255Sha512 => {
             let state = state.take_ristretto()?;

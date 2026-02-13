@@ -274,6 +274,13 @@ pub(crate) fn server_finish_registration(
     suite: Option<String>,
 ) -> PyResult<PyServerRegistration> {
     let suite = parse_suite(suite.as_deref())?;
+    server_finish_registration_with_suite(upload, suite)
+}
+
+pub(crate) fn server_finish_registration_with_suite(
+    upload: Vec<u8>,
+    suite: SuiteId,
+) -> PyResult<PyServerRegistration> {
     match suite {
         SuiteId::Ristretto255Sha512 => {
             let upload = RegistrationUpload::<Ristretto255Sha512>::deserialize(&upload)

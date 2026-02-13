@@ -13,4 +13,5 @@
 **/node_modules/
 **/package-lock.json
 *.so
+*.pyd
 **/.pytest_cache/

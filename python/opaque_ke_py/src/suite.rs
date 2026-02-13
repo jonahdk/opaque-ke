@@ -12,7 +12,7 @@ pub(crate) const P521_SHA512: &str = "p521_sha512";
 pub(crate) const ML_KEM_768_RISTRETTO255_SHA512: &str = "ml_kem_768_ristretto255_sha512";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum SuiteId {
+pub enum SuiteId {
     Ristretto255Sha512,
     P256Sha256,
     P384Sha384,
@@ -21,31 +21,46 @@ pub(crate) enum SuiteId {
 }
 
 impl SuiteId {
-    pub(crate) fn from_str(value: &str) -> Option<Self> {
-        match value {
-            RISTRETTO255_SHA512 => Some(SuiteId::Ristretto255Sha512),
-            P256_SHA256 => Some(SuiteId::P256Sha256),
-            P384_SHA384 => Some(SuiteId::P384Sha384),
-            P521_SHA512 => Some(SuiteId::P521Sha512),
-            ML_KEM_768_RISTRETTO255_SHA512 => Some(SuiteId::MlKem768Ristretto255Sha512),
-            _ => None,
+    pub(crate) fn as_str(self) -> &'static str {
+        match self {
+            SuiteId::Ristretto255Sha512 => RISTRETTO255_SHA512,
+            SuiteId::P256Sha256 => P256_SHA256,
+            SuiteId::P384Sha384 => P384_SHA384,
+            SuiteId::P521Sha512 => P521_SHA512,
+            SuiteId::MlKem768Ristretto255Sha512 => ML_KEM_768_RISTRETTO255_SHA512,
         }
     }
 
     pub(crate) fn available() -> Vec<&'static str> {
-        let mut suites = vec![RISTRETTO255_SHA512];
-        suites.push(P256_SHA256);
-        suites.push(P384_SHA384);
-        suites.push(P521_SHA512);
-        suites.push(ML_KEM_768_RISTRETTO255_SHA512);
-        suites
+        vec![
+            RISTRETTO255_SHA512,
+            P256_SHA256,
+            P384_SHA384,
+            P521_SHA512,
+            ML_KEM_768_RISTRETTO255_SHA512,
+        ]
+    }
+}
+
+impl std::str::FromStr for SuiteId {
+    type Err = ();
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value {
+            RISTRETTO255_SHA512 => Ok(SuiteId::Ristretto255Sha512),
+            P256_SHA256 => Ok(SuiteId::P256Sha256),
+            P384_SHA384 => Ok(SuiteId::P384Sha384),
+            P521_SHA512 => Ok(SuiteId::P521Sha512),
+            ML_KEM_768_RISTRETTO255_SHA512 => Ok(SuiteId::MlKem768Ristretto255Sha512),
+            _ => Err(()),
+        }
     }
 }
 
 pub(crate) fn parse_suite(suite: Option<&str>) -> PyResult<SuiteId> {
     let raw = suite.unwrap_or(RISTRETTO255_SHA512);
     let normalized = raw.to_ascii_lowercase();
-    SuiteId::from_str(normalized.as_str()).ok_or_else(|| {
+    normalized.parse::<SuiteId>().map_err(|_| {
         let available = SuiteId::available().join(", ");
         PyErr::new::<PyValueError, _>(format!(
             "unsupported cipher suite '{normalized}' (available: {available})"

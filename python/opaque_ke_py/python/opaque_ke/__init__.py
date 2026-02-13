@@ -20,6 +20,4 @@ def _load_extension():
     raise ImportError("opaque_ke extension module not found; run 'maturin develop'")
 
 
-_module = _load_extension()
-# Mirror the extension module so `import opaque_ke` behaves like the native module.
-globals().update(_module.__dict__)
+_load_extension()

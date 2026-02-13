@@ -15,7 +15,7 @@ use crate::suite::{
     parse_suite,
 };
 
-#[pyclass(unsendable)]
+#[pyclass(unsendable, from_py_object)]
 #[derive(Clone)]
 pub struct Identifiers {
     #[pyo3(get)]
@@ -41,7 +41,7 @@ impl Identifiers {
     }
 }
 
-#[pyclass(unsendable)]
+#[pyclass(unsendable, from_py_object)]
 #[derive(Clone)]
 pub struct Argon2Params {
     #[pyo3(get)]
@@ -84,7 +84,7 @@ impl Argon2Params {
     }
 }
 
-#[pyclass(unsendable)]
+#[pyclass(unsendable, from_py_object)]
 #[derive(Clone)]
 pub struct KeyStretching {
     #[pyo3(get)]
@@ -128,7 +128,7 @@ impl KeyStretching {
     }
 }
 
-#[pyclass(unsendable)]
+#[pyclass(unsendable, from_py_object)]
 #[derive(Clone)]
 pub struct ClientRegistrationFinishParameters {
     identifiers: Option<Identifiers>,
@@ -159,7 +159,7 @@ impl ClientRegistrationFinishParameters {
     }
 }
 
-#[pyclass(unsendable)]
+#[pyclass(unsendable, from_py_object)]
 #[derive(Clone)]
 pub struct ServerLoginParameters {
     context: Option<Vec<u8>>,
@@ -187,7 +187,7 @@ impl ServerLoginParameters {
     }
 }
 
-#[pyclass(unsendable)]
+#[pyclass(unsendable, from_py_object)]
 #[derive(Clone)]
 pub struct ClientLoginFinishParameters {
     context: Option<Vec<u8>>,

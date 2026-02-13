@@ -8,7 +8,7 @@ See `docs/python.md` in the repo root for additional details.
 
 From this directory:
 
-```
+```sh
 .venv/bin/python -m pip install -U pip
 .venv/bin/python -m maturin develop
 ```
@@ -51,7 +51,7 @@ assert session_key == server_session_key
 - Supported cipher suites: `ristretto255_sha512`, `p256_sha256`, `p384_sha384`,
   `p521_sha512`, `ml_kem_768_ristretto255_sha512`
   (see `opaque_ke.ciphersuites.available()`).
-- Wheels target CPython 3.9 through 3.14 on Linux, macOS, and Windows for AMD64 and ARM64.
+- Wheels target CPython 3.11 through 3.14 on Linux, macOS, and Windows for AMD64 and ARM64.
 - If no suite is provided, the default is `ristretto255_sha512`.
 - Protocol messages and state blobs are bytes in Python. Use base64 helpers for transport:
   `opaque_ke.encoding.encode_b64` returns URL-safe base64 without padding, and
@@ -63,7 +63,7 @@ assert session_key == server_session_key
 
 ## Running tests
 
-```
+```sh
 .venv/bin/python -m pytest
 ```
 

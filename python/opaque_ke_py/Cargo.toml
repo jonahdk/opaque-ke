@@ -13,13 +13,6 @@ version = "0.1.2"
 crate-type = ["cdylib"]
 name = "opaque_ke"
 
-[features]
-argon2 = ["opaque-ke/argon2"]
-default = ["std", "ristretto255", "argon2", "serde"]
-ristretto255 = ["opaque-ke/ristretto255"]
-serde = ["opaque-ke/serde"]
-std = ["opaque-ke/std"]
-
 [dependencies]
 base64 = { version = "0.22", default-features = false, features = ["alloc"] }
 opaque-ke = { path = "../..", default-features = false, features = [
@@ -41,5 +34,5 @@ p521 = { version = "0.13.3", default-features = false, features = [
   "hash2curve",
   "voprf",
 ] }
-pyo3 = { version = "0.21", features = ["extension-module", "abi3-py39"] }
+pyo3 = { version = "0.28", features = ["extension-module", "abi3-py311"] }
 sha2 = { version = "0.10", default-features = false }

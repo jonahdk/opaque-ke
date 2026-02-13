@@ -5,7 +5,7 @@ cross-stack interoperability checks against `@serenity-kit/opaque`.
 
 ## Setup
 
-```
+```sh
 npm install
 ```
 

@@ -27,12 +27,12 @@ The bindings are built with the `opaque-ke` features `std`, `ristretto255`, `arg
 the bindings to support key stretching. Suite selection happens at runtime using the
 suite identifier strings above; if no suite is provided, `ristretto255_sha512` is used.
 
-Wheels are built for CPython 3.9 through 3.14 on Linux, macOS, and Windows for both
+Wheels are built for CPython 3.11 through 3.14 on Linux, macOS, and Windows for both
 AMD64 and ARM64.
 
 ## Install (local dev)
 
-```
+```sh
 .venv/bin/python -m pip install -U pip
 cd python/opaque_ke_py
 .venv/bin/python -m maturin develop
@@ -152,7 +152,7 @@ To persist across processes, serialize to bytes and store with base64.
   from `client.finish_login`:
 
 ```python
-client.verify_server_public_key(expected_server_s_pk, server_s_pk)
+OpaqueClient.verify_server_public_key(expected_server_s_pk, server_s_pk)
 ```
 
 ## Error mapping
@@ -169,7 +169,7 @@ Errors map to `opaque_ke.errors`:
 
 ## Testing
 
-```
+```sh
 cd python/opaque_ke_py
 .venv/bin/python -m pytest
 ```
@@ -180,10 +180,10 @@ Interop tests are gated behind `OPAQUE_JS_INTEROP=1` and run against
 `@serenity-kit/opaque` using the repo-local JS harness in
 `python/opaque_ke_py/tests/js/`.
 
-```
+```sh
 cd python/opaque_ke_py/tests/js
 npm install
 
-cd ../../..
+cd ../../../../
 OPAQUE_JS_INTEROP=1 .venv/bin/python -m pytest python/opaque_ke_py/tests/test_js_interop.py
 ```

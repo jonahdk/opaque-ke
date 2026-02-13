@@ -8,6 +8,7 @@ use pyo3::types::{PyBytes, PyModule};
 
 use crate::errors::{invalid_login_err, invalid_state_err, to_py_err};
 use crate::py_utils;
+use crate::py_utils::per_suite_dispatch;
 use crate::suite::{
     MlKem768Ristretto255Sha512, P256Sha256, P384Sha384, P521Sha512, Ristretto255Sha512, SuiteId,
     parse_suite,
@@ -39,66 +40,30 @@ impl OpaqueClient {
         password: Vec<u8>,
     ) -> PyResult<(Py<PyBytes>, ClientRegistrationState)> {
         let mut rng = OsRng;
-        match self.suite {
-            SuiteId::Ristretto255Sha512 => {
-                let result = ClientRegistration::<Ristretto255Sha512>::start(&mut rng, &password)
-                    .map_err(to_py_err)?;
-                let message = result.message.serialize().to_vec();
-                Ok((
-                    py_utils::to_pybytes(py, &message),
-                    ClientRegistrationState {
-                        inner: ClientRegistrationStateInner::Ristretto255Sha512(Some(result.state)),
-                    },
-                ))
-            }
-            SuiteId::P256Sha256 => {
-                let result = ClientRegistration::<P256Sha256>::start(&mut rng, &password)
-                    .map_err(to_py_err)?;
-                let message = result.message.serialize().to_vec();
-                Ok((
-                    py_utils::to_pybytes(py, &message),
-                    ClientRegistrationState {
-                        inner: ClientRegistrationStateInner::P256Sha256(Some(result.state)),
-                    },
-                ))
-            }
-            SuiteId::P384Sha384 => {
-                let result = ClientRegistration::<P384Sha384>::start(&mut rng, &password)
-                    .map_err(to_py_err)?;
-                let message = result.message.serialize().to_vec();
-                Ok((
-                    py_utils::to_pybytes(py, &message),
-                    ClientRegistrationState {
-                        inner: ClientRegistrationStateInner::P384Sha384(Some(result.state)),
-                    },
-                ))
-            }
-            SuiteId::P521Sha512 => {
-                let result = ClientRegistration::<P521Sha512>::start(&mut rng, &password)
-                    .map_err(to_py_err)?;
-                let message = result.message.serialize().to_vec();
-                Ok((
-                    py_utils::to_pybytes(py, &message),
-                    ClientRegistrationState {
-                        inner: ClientRegistrationStateInner::P521Sha512(Some(result.state)),
-                    },
-                ))
-            }
-            SuiteId::MlKem768Ristretto255Sha512 => {
-                let result =
-                    ClientRegistration::<MlKem768Ristretto255Sha512>::start(&mut rng, &password)
-                        .map_err(to_py_err)?;
-                let message = result.message.serialize().to_vec();
-                Ok((
-                    py_utils::to_pybytes(py, &message),
-                    ClientRegistrationState {
-                        inner: ClientRegistrationStateInner::MlKem768Ristretto255Sha512(Some(
-                            result.state,
-                        )),
-                    },
-                ))
-            }
-        }
+        per_suite_dispatch!(
+            suite = self.suite,
+            py = py,
+            rng = rng,
+            password = password,
+            start = ClientRegistration,
+            state_type = ClientRegistrationState,
+            state_inner = ClientRegistrationStateInner,
+            [
+                (
+                    SuiteId::Ristretto255Sha512,
+                    Ristretto255Sha512,
+                    Ristretto255Sha512
+                ),
+                (SuiteId::P256Sha256, P256Sha256, P256Sha256),
+                (SuiteId::P384Sha384, P384Sha384, P384Sha384),
+                (SuiteId::P521Sha512, P521Sha512, P521Sha512),
+                (
+                    SuiteId::MlKem768Ristretto255Sha512,
+                    MlKem768Ristretto255Sha512,
+                    MlKem768Ristretto255Sha512
+                ),
+            ]
+        )
     }
 
     fn finish_registration(
@@ -249,65 +214,30 @@ impl OpaqueClient {
         password: Vec<u8>,
     ) -> PyResult<(Py<PyBytes>, ClientLoginState)> {
         let mut rng = OsRng;
-        match self.suite {
-            SuiteId::Ristretto255Sha512 => {
-                let result = ClientLogin::<Ristretto255Sha512>::start(&mut rng, &password)
-                    .map_err(to_py_err)?;
-                let message = result.message.serialize().to_vec();
-                Ok((
-                    py_utils::to_pybytes(py, &message),
-                    ClientLoginState {
-                        inner: ClientLoginStateInner::Ristretto255Sha512(Some(result.state)),
-                    },
-                ))
-            }
-            SuiteId::P256Sha256 => {
-                let result =
-                    ClientLogin::<P256Sha256>::start(&mut rng, &password).map_err(to_py_err)?;
-                let message = result.message.serialize().to_vec();
-                Ok((
-                    py_utils::to_pybytes(py, &message),
-                    ClientLoginState {
-                        inner: ClientLoginStateInner::P256Sha256(Some(result.state)),
-                    },
-                ))
-            }
-            SuiteId::P384Sha384 => {
-                let result =
-                    ClientLogin::<P384Sha384>::start(&mut rng, &password).map_err(to_py_err)?;
-                let message = result.message.serialize().to_vec();
-                Ok((
-                    py_utils::to_pybytes(py, &message),
-                    ClientLoginState {
-                        inner: ClientLoginStateInner::P384Sha384(Some(result.state)),
-                    },
-                ))
-            }
-            SuiteId::P521Sha512 => {
-                let result =
-                    ClientLogin::<P521Sha512>::start(&mut rng, &password).map_err(to_py_err)?;
-                let message = result.message.serialize().to_vec();
-                Ok((
-                    py_utils::to_pybytes(py, &message),
-                    ClientLoginState {
-                        inner: ClientLoginStateInner::P521Sha512(Some(result.state)),
-                    },
-                ))
-            }
-            SuiteId::MlKem768Ristretto255Sha512 => {
-                let result = ClientLogin::<MlKem768Ristretto255Sha512>::start(&mut rng, &password)
-                    .map_err(to_py_err)?;
-                let message = result.message.serialize().to_vec();
-                Ok((
-                    py_utils::to_pybytes(py, &message),
-                    ClientLoginState {
-                        inner: ClientLoginStateInner::MlKem768Ristretto255Sha512(Some(
-                            result.state,
-                        )),
-                    },
-                ))
-            }
-        }
+        per_suite_dispatch!(
+            suite = self.suite,
+            py = py,
+            rng = rng,
+            password = password,
+            start = ClientLogin,
+            state_type = ClientLoginState,
+            state_inner = ClientLoginStateInner,
+            [
+                (
+                    SuiteId::Ristretto255Sha512,
+                    Ristretto255Sha512,
+                    Ristretto255Sha512
+                ),
+                (SuiteId::P256Sha256, P256Sha256, P256Sha256),
+                (SuiteId::P384Sha384, P384Sha384, P384Sha384),
+                (SuiteId::P521Sha512, P521Sha512, P521Sha512),
+                (
+                    SuiteId::MlKem768Ristretto255Sha512,
+                    MlKem768Ristretto255Sha512,
+                    MlKem768Ristretto255Sha512
+                ),
+            ]
+        )
     }
 
     fn finish_login(
@@ -508,8 +438,8 @@ impl OpaqueClient {
         }
     }
 
-    #[allow(clippy::unused_self)]
-    fn verify_server_public_key(&self, expected: Vec<u8>, actual: Vec<u8>) -> PyResult<()> {
+    #[staticmethod]
+    fn verify_server_public_key(expected: Vec<u8>, actual: Vec<u8>) -> PyResult<()> {
         if expected == actual {
             Ok(())
         } else {

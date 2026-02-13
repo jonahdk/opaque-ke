@@ -152,7 +152,7 @@ Rust `ProtocolError` variants map 1:1 to these Python exceptions, preserving the
   (`std`, `ristretto255`, `argon2`, `serde`, plus KEM enabled).
 - Suites are compiled in by default; there are no Python-level feature toggles
   for enabling/disabling suites.
-- CI should build wheels for CPython 3.9–3.13 on Linux/macOS/Windows (manylinux
+- CI should build wheels for CPython 3.11–3.13 on Linux/macOS/Windows (manylinux
   targets for Linux), AMD64 and ARM64.
 
 Minimal `pyproject.toml` sketch (for the plan):
@@ -163,7 +163,7 @@ build-backend = "maturin"
 
 [project]
 name = "opaque_ke"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 
 [tool.maturin]
 bindings = "pyo3"
@@ -208,7 +208,7 @@ python-source = "python"
 2: ~~Implement minimal API (Ristretto255 + SHA-512), registration/login flows, and serialization.~~
 3: ~~Error mapping, parameter objects, context support, state handling, and encoding helpers.~~
 4: ~~Cross-stack JS interop tests + pytest suite + docs polish.~~
-5: ~~CI packaging (wheels for 3.9–3.13).~~
+5: ~~CI packaging (wheels for 3.11–3.13).~~
 6: Expand suites (P-256/P-384/P-521, KEM if enabled).
 
 # NOTES

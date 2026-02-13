@@ -47,7 +47,7 @@ This fork's primary goal is to add robust, user-friendly, and secure Python bind
 ## Security & Configuration Notes
 - MSRV is Rust 1.85 (see `Cargo.toml`).
 - Dependency policy is tracked in `deny.toml` (optional: `cargo deny check`).
-- Dual-licensed under MIT or Apache-2.0 (this fork uses MIT).
+- The root crate in `Cargo.toml` is dual-licensed under `Apache-2.0 OR MIT`, while the Python bindings crate in `python/opaque_ke_py` is MIT-only.
 
 ## Agent-Specific Instructions
 - If a Python virtual environment exists in the repo, use it instead of system Python.

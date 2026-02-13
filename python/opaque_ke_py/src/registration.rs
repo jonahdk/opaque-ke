@@ -6,8 +6,8 @@ use opaque_ke::{
 use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyModule};
 
-use crate::errors::{invalid_state_err, to_py_err};
-use crate::py_utils;
+use crate::errors::to_py_err;
+use crate::py_utils::per_suite_dispatch;
 use crate::suite::{
     MlKem768Ristretto255Sha512, P256Sha256, P384Sha384, P521Sha512, Ristretto255Sha512, SuiteId,
     parse_suite,
@@ -18,16 +18,7 @@ use crate::types::{
     ServerRegistration as PyServerRegistration, ServerRegistrationInner, ServerSetup,
     ServerSetupInner,
 };
-
-fn ensure_suite(expected: SuiteId, actual: SuiteId, label: &str) -> PyResult<()> {
-    if expected == actual {
-        Ok(())
-    } else {
-        Err(invalid_state_err(&format!(
-            "{label} does not match requested cipher suite"
-        )))
-    }
-}
+use crate::{ensure_suite, py_utils};
 
 #[pyfunction(name = "start_registration")]
 #[pyo3(signature = (password, suite=None))]
@@ -38,66 +29,30 @@ fn client_start_registration(
 ) -> PyResult<(Py<PyBytes>, ClientRegistrationState)> {
     let suite = parse_suite(suite.as_deref())?;
     let mut rng = OsRng;
-    match suite {
-        SuiteId::Ristretto255Sha512 => {
-            let result = ClientRegistration::<Ristretto255Sha512>::start(&mut rng, &password)
-                .map_err(to_py_err)?;
-            let message = result.message.serialize().to_vec();
-            Ok((
-                py_utils::to_pybytes(py, &message),
-                ClientRegistrationState {
-                    inner: ClientRegistrationStateInner::Ristretto255Sha512(Some(result.state)),
-                },
-            ))
-        }
-        SuiteId::P256Sha256 => {
-            let result =
-                ClientRegistration::<P256Sha256>::start(&mut rng, &password).map_err(to_py_err)?;
-            let message = result.message.serialize().to_vec();
-            Ok((
-                py_utils::to_pybytes(py, &message),
-                ClientRegistrationState {
-                    inner: ClientRegistrationStateInner::P256Sha256(Some(result.state)),
-                },
-            ))
-        }
-        SuiteId::P384Sha384 => {
-            let result =
-                ClientRegistration::<P384Sha384>::start(&mut rng, &password).map_err(to_py_err)?;
-            let message = result.message.serialize().to_vec();
-            Ok((
-                py_utils::to_pybytes(py, &message),
-                ClientRegistrationState {
-                    inner: ClientRegistrationStateInner::P384Sha384(Some(result.state)),
-                },
-            ))
-        }
-        SuiteId::P521Sha512 => {
-            let result =
-                ClientRegistration::<P521Sha512>::start(&mut rng, &password).map_err(to_py_err)?;
-            let message = result.message.serialize().to_vec();
-            Ok((
-                py_utils::to_pybytes(py, &message),
-                ClientRegistrationState {
-                    inner: ClientRegistrationStateInner::P521Sha512(Some(result.state)),
-                },
-            ))
-        }
-        SuiteId::MlKem768Ristretto255Sha512 => {
-            let result =
-                ClientRegistration::<MlKem768Ristretto255Sha512>::start(&mut rng, &password)
-                    .map_err(to_py_err)?;
-            let message = result.message.serialize().to_vec();
-            Ok((
-                py_utils::to_pybytes(py, &message),
-                ClientRegistrationState {
-                    inner: ClientRegistrationStateInner::MlKem768Ristretto255Sha512(Some(
-                        result.state,
-                    )),
-                },
-            ))
-        }
-    }
+    per_suite_dispatch!(
+        suite = suite,
+        py = py,
+        rng = rng,
+        password = password,
+        start = ClientRegistration,
+        state_type = ClientRegistrationState,
+        state_inner = ClientRegistrationStateInner,
+        [
+            (
+                SuiteId::Ristretto255Sha512,
+                Ristretto255Sha512,
+                Ristretto255Sha512
+            ),
+            (SuiteId::P256Sha256, P256Sha256, P256Sha256),
+            (SuiteId::P384Sha384, P384Sha384, P384Sha384),
+            (SuiteId::P521Sha512, P521Sha512, P521Sha512),
+            (
+                SuiteId::MlKem768Ristretto255Sha512,
+                MlKem768Ristretto255Sha512,
+                MlKem768Ristretto255Sha512
+            ),
+        ]
+    )
 }
 
 #[pyfunction(name = "finish_registration")]
@@ -245,7 +200,7 @@ fn client_finish_registration(
 
 #[pyfunction(name = "start_registration")]
 #[pyo3(signature = (server_setup, request, credential_identifier, suite=None))]
-fn server_start_registration(
+pub(crate) fn server_start_registration(
     py: Python<'_>,
     server_setup: PyRef<'_, ServerSetup>,
     request: Vec<u8>,
@@ -314,7 +269,7 @@ fn server_start_registration(
 
 #[pyfunction(name = "finish_registration")]
 #[pyo3(signature = (upload, suite=None))]
-fn server_finish_registration(
+pub(crate) fn server_finish_registration(
     upload: Vec<u8>,
     suite: Option<String>,
 ) -> PyResult<PyServerRegistration> {

@@ -7,7 +7,7 @@ use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyModule};
 
 use crate::errors::{invalid_login_err, invalid_state_err, to_py_err};
-use crate::py_utils;
+use crate::py_utils::per_suite_dispatch;
 use crate::suite::{
     MlKem768Ristretto255Sha512, P256Sha256, P384Sha384, P521Sha512, Ristretto255Sha512, SuiteId,
     parse_suite,
@@ -18,16 +18,7 @@ use crate::types::{
     ServerLoginStateInner, ServerRegistration, ServerRegistrationInner, ServerSetup,
     ServerSetupInner,
 };
-
-fn ensure_suite(expected: SuiteId, actual: SuiteId, label: &str) -> PyResult<()> {
-    if expected == actual {
-        Ok(())
-    } else {
-        Err(invalid_state_err(&format!(
-            "{label} does not match requested cipher suite"
-        )))
-    }
-}
+use crate::{ensure_suite, py_utils};
 
 #[pyfunction(name = "start_login")]
 #[pyo3(signature = (password, suite=None))]
@@ -38,63 +29,30 @@ fn client_start_login(
 ) -> PyResult<(Py<PyBytes>, ClientLoginState)> {
     let suite = parse_suite(suite.as_deref())?;
     let mut rng = OsRng;
-    match suite {
-        SuiteId::Ristretto255Sha512 => {
-            let result =
-                ClientLogin::<Ristretto255Sha512>::start(&mut rng, &password).map_err(to_py_err)?;
-            let message = result.message.serialize().to_vec();
-            Ok((
-                py_utils::to_pybytes(py, &message),
-                ClientLoginState {
-                    inner: ClientLoginStateInner::Ristretto255Sha512(Some(result.state)),
-                },
-            ))
-        }
-        SuiteId::P256Sha256 => {
-            let result =
-                ClientLogin::<P256Sha256>::start(&mut rng, &password).map_err(to_py_err)?;
-            let message = result.message.serialize().to_vec();
-            Ok((
-                py_utils::to_pybytes(py, &message),
-                ClientLoginState {
-                    inner: ClientLoginStateInner::P256Sha256(Some(result.state)),
-                },
-            ))
-        }
-        SuiteId::P384Sha384 => {
-            let result =
-                ClientLogin::<P384Sha384>::start(&mut rng, &password).map_err(to_py_err)?;
-            let message = result.message.serialize().to_vec();
-            Ok((
-                py_utils::to_pybytes(py, &message),
-                ClientLoginState {
-                    inner: ClientLoginStateInner::P384Sha384(Some(result.state)),
-                },
-            ))
-        }
-        SuiteId::P521Sha512 => {
-            let result =
-                ClientLogin::<P521Sha512>::start(&mut rng, &password).map_err(to_py_err)?;
-            let message = result.message.serialize().to_vec();
-            Ok((
-                py_utils::to_pybytes(py, &message),
-                ClientLoginState {
-                    inner: ClientLoginStateInner::P521Sha512(Some(result.state)),
-                },
-            ))
-        }
-        SuiteId::MlKem768Ristretto255Sha512 => {
-            let result = ClientLogin::<MlKem768Ristretto255Sha512>::start(&mut rng, &password)
-                .map_err(to_py_err)?;
-            let message = result.message.serialize().to_vec();
-            Ok((
-                py_utils::to_pybytes(py, &message),
-                ClientLoginState {
-                    inner: ClientLoginStateInner::MlKem768Ristretto255Sha512(Some(result.state)),
-                },
-            ))
-        }
-    }
+    per_suite_dispatch!(
+        suite = suite,
+        py = py,
+        rng = rng,
+        password = password,
+        start = ClientLogin,
+        state_type = ClientLoginState,
+        state_inner = ClientLoginStateInner,
+        [
+            (
+                SuiteId::Ristretto255Sha512,
+                Ristretto255Sha512,
+                Ristretto255Sha512
+            ),
+            (SuiteId::P256Sha256, P256Sha256, P256Sha256),
+            (SuiteId::P384Sha384, P384Sha384, P384Sha384),
+            (SuiteId::P521Sha512, P521Sha512, P521Sha512),
+            (
+                SuiteId::MlKem768Ristretto255Sha512,
+                MlKem768Ristretto255Sha512,
+                MlKem768Ristretto255Sha512
+            ),
+        ]
+    )
 }
 
 #[pyfunction(name = "finish_login")]
@@ -297,7 +255,7 @@ fn client_finish_login(
 
 #[pyfunction(name = "start_login")]
 #[pyo3(signature = (server_setup, password_file, request, credential_identifier, params=None, suite=None))]
-fn server_start_login(
+pub(crate) fn server_start_login(
     py: Python<'_>,
     server_setup: PyRef<'_, ServerSetup>,
     password_file: PyRef<'_, ServerRegistration>,
@@ -451,7 +409,7 @@ fn server_start_login(
 
 #[pyfunction(name = "finish_login")]
 #[pyo3(signature = (state, finalization, params=None, suite=None))]
-fn server_finish_login(
+pub(crate) fn server_finish_login(
     py: Python<'_>,
     mut state: PyRefMut<'_, ServerLoginState>,
     finalization: Vec<u8>,

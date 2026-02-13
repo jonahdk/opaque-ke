@@ -312,7 +312,7 @@ opaque.client.finishLogin({
 
 ### ExportKey
 
-After the initial registration flow as well as ever login flow, the client has access to a private key only available to the client. This is the `exportKey`. The key is not available to the server and it is stable. Meaning if you log in multiple times your `exportKey` will stay the same.
+After the initial registration flow as well as every login flow, the client has access to a private key only available to the client. This is the `exportKey`. The key is not available to the server and it is stable. Meaning if you log in multiple times your `exportKey` will stay the same.
 
 #### Example usage
 
@@ -395,7 +395,7 @@ const { serverStaticPublicKey } = loginResult;
 
 ### Identifiers
 
-By default the server-side sets a `userIdentifier` during the registration and login process. This `userIdentifier` does not even need to be exposed to be exposed to a client.
+By default the server-side sets a `userIdentifier` during the registration and login process. This `userIdentifier` does not even need to be exposed to the client.
 
 `opaque.client.finishRegistration`, `opaque.server.startLogin` and `opaque.client.finishLogin` all accept an optional object `identifiers`. It accepts an optional string value for the property `client` and an optional string value for `server`.
 
@@ -468,7 +468,7 @@ If you would like to use the [P-256](https://docs.rs/p256/latest/p256/) curve in
 
 ### ReactNative
 
-There is also a React Native version of this library available at [https://github.com/serenity-kit/react-native-opaque](https://github.com/serenity-kit/react-native-opaque) as weel as [https://github.com/serenity-kit/react-native-opaque-p256](https://github.com/serenity-kit/react-native-opaque-p256).
+There is also a React Native version of this library available at [https://github.com/serenity-kit/react-native-opaque](https://github.com/serenity-kit/react-native-opaque) as well as [https://github.com/serenity-kit/react-native-opaque-p256](https://github.com/serenity-kit/react-native-opaque-p256).
 
 ## Acknowledgement
 

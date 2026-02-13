@@ -120,7 +120,7 @@ def test_verify_server_public_key_helper(client, server, server_setup, password,
     )
 
     assert session_key == server_session_key
-    client.verify_server_public_key(server_s_pk, server_s_pk)
+    type(client).verify_server_public_key(server_s_pk, server_s_pk)
 
     with pytest.raises(InvalidLoginError):
-        client.verify_server_public_key(server_s_pk, b"bad-key")
+        type(client).verify_server_public_key(server_s_pk, b"bad-key")

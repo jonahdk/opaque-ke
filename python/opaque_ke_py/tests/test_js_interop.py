@@ -25,6 +25,7 @@ if not OPAQUE_JS_INTEROP:
     )
 
 BASE64URL_RE = re.compile(r"^[A-Za-z0-9_-]+$")
+JS_INTEROP_TIMEOUT_SECONDS = 15
 
 
 def b64url_encode(data: bytes) -> str:
@@ -54,10 +55,23 @@ def js_call(action: str, **kwargs):
             input=json.dumps(payload).encode("utf-8"),
             capture_output=True,
             check=False,
+            timeout=JS_INTEROP_TIMEOUT_SECONDS,
             cwd=harness.parent,
         )
     except FileNotFoundError as exc:
         pytest.skip(f"Node not available: {exc}", allow_module_level=True)
+    except subprocess.TimeoutExpired as exc:
+        pytest.fail(
+            str(
+                {
+                    "action": action,
+                    "payload": payload,
+                    "node": node,
+                    "harness": str(harness),
+                    "exc": repr(exc),
+                }
+            )
+        )
 
     if not result.stdout:
         raise AssertionError(

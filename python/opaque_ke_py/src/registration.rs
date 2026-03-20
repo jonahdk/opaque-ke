@@ -329,30 +329,20 @@ fn registration_upload_err<T: std::fmt::Display>(
 }
 
 fn registration_upload_matches_other_suite(upload: &[u8], expected: SuiteId) -> bool {
-    [
-        (
-            SuiteId::Ristretto255Sha512,
-            RegistrationUpload::<Ristretto255Sha512>::deserialize(upload).is_ok(),
-        ),
-        (
-            SuiteId::P256Sha256,
-            RegistrationUpload::<P256Sha256>::deserialize(upload).is_ok(),
-        ),
-        (
-            SuiteId::P384Sha384,
-            RegistrationUpload::<P384Sha384>::deserialize(upload).is_ok(),
-        ),
-        (
-            SuiteId::P521Sha512,
-            RegistrationUpload::<P521Sha512>::deserialize(upload).is_ok(),
-        ),
-        (
-            SuiteId::MlKem768Ristretto255Sha512,
-            RegistrationUpload::<MlKem768Ristretto255Sha512>::deserialize(upload).is_ok(),
-        ),
-    ]
-    .into_iter()
-    .any(|(suite, matches)| suite != expected && matches)
+    SuiteId::all()
+        .into_iter()
+        .filter(|suite| *suite != expected)
+        .any(|suite| match suite {
+            SuiteId::Ristretto255Sha512 => {
+                RegistrationUpload::<Ristretto255Sha512>::deserialize(upload).is_ok()
+            }
+            SuiteId::P256Sha256 => RegistrationUpload::<P256Sha256>::deserialize(upload).is_ok(),
+            SuiteId::P384Sha384 => RegistrationUpload::<P384Sha384>::deserialize(upload).is_ok(),
+            SuiteId::P521Sha512 => RegistrationUpload::<P521Sha512>::deserialize(upload).is_ok(),
+            SuiteId::MlKem768Ristretto255Sha512 => {
+                RegistrationUpload::<MlKem768Ristretto255Sha512>::deserialize(upload).is_ok()
+            }
+        })
 }
 
 pub fn register(py: Python<'_>, parent: &Bound<'_, PyModule>) -> PyResult<()> {

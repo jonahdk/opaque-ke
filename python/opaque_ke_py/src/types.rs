@@ -9,7 +9,7 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyModule};
 
-use crate::errors::{invalid_state_err, serialization_err, to_py_err};
+use crate::errors::{SizeError, invalid_state_err, serialization_err, to_py_err};
 use crate::py_utils;
 use crate::suite::{
     MlKem768Ristretto255Sha512, P256Sha256, P384Sha384, P521Sha512, Ristretto255Sha512, SuiteId,
@@ -264,20 +264,33 @@ where
     }
 
     let mut matched = Vec::new();
+    let mut first_size_error = None;
     let mut value = None;
     for candidate in SuiteId::all() {
-        if let Ok(parsed) = parse(candidate) {
-            matched.push(candidate.as_str());
-            if value.is_none() {
-                value = Some(parsed);
+        match parse(candidate) {
+            Ok(parsed) => {
+                matched.push(candidate.as_str());
+                if value.is_none() {
+                    value = Some(parsed);
+                }
+            }
+            Err(err) => {
+                if first_size_error.is_none()
+                    && Python::attach(|py| err.is_instance_of::<SizeError>(py))
+                {
+                    first_size_error = Some(err);
+                }
             }
         }
     }
 
     match matched.len() {
-        0 => Err(serialization_err(&format!(
-            "failed to deserialize {label} under any supported cipher suite"
-        ))),
+        0 => match first_size_error {
+            Some(err) => Err(err),
+            None => Err(serialization_err(&format!(
+                "failed to deserialize {label} under any supported cipher suite"
+            ))),
+        },
         1 => match value {
             Some(value) => Ok(value),
             None => Err(serialization_err(&format!(

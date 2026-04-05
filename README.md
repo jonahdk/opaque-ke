@@ -22,7 +22,7 @@ Installation
 Add the following line to the dependencies of your `Cargo.toml`:
 
 ```
-opaque-ke = "4.1.0-pre.1"
+opaque-ke = "4.1.0-pre.2"
 ```
 
 Python bindings
@@ -39,7 +39,7 @@ See `docs/python.md` for API usage, state handling, and testing notes.
 
 ### Minimum Supported Rust Version
 
-Rust **1.85** or higher.
+Rust **1.87** or higher.
 
 Audit
 -----

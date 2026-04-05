@@ -11,7 +11,7 @@
 //!
 //! ### Minimum Supported Rust Version
 //!
-//! Rust **1.85** or higher.
+//! Rust **1.87** or higher.
 //!
 //! # Overview
 //!

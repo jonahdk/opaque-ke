@@ -183,7 +183,9 @@ def test_deserialize_rejects_trailing_bytes():
     server_setup = ServerSetup()
 
     with pytest.raises(SizeError):
-        ServerSetup.deserialize(server_setup.serialize() + b"junk", "ristretto255_sha512")
+        ServerSetup.deserialize(
+            server_setup.serialize() + b"junk", "ristretto255_sha512"
+        )
 
     req, reg_state = client.start_registration(b"password")
     resp = server.start_registration(server_setup, req, b"user")

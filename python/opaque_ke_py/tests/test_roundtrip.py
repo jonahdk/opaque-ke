@@ -10,7 +10,9 @@ from opaque_ke.types import (
 )
 
 
-def _register_high_level(client, server, server_setup, password, credential_identifier, params=None):
+def _register_high_level(
+    client, server, server_setup, password, credential_identifier, params=None
+):
     request, state = client.start_registration(password)
     response = server.start_registration(server_setup, request, credential_identifier)
     upload, export_key = client.finish_registration(state, password, response, params)
@@ -39,7 +41,9 @@ def _login_high_level(
     return session_key, server_session_key, export_key, server_s_pk
 
 
-def test_high_level_roundtrip(client, server, server_setup, password, credential_identifier):
+def test_high_level_roundtrip(
+    client, server, server_setup, password, credential_identifier
+):
     password_file, _ = _register_high_level(
         client, server, server_setup, password, credential_identifier
     )
@@ -107,7 +111,9 @@ def test_low_level_roundtrip(server_setup, password, credential_identifier):
     assert session_key == server_session_key
 
 
-def test_verify_server_public_key_helper(client, server, server_setup, password, credential_identifier):
+def test_verify_server_public_key_helper(
+    client, server, server_setup, password, credential_identifier
+):
     password_file, _ = _register_high_level(
         client, server, server_setup, password, credential_identifier
     )

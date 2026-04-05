@@ -59,7 +59,9 @@ def test_client_login_state_roundtrip():
     server_setup = ServerSetup()
     password = b"password"
     credential_identifier = b"user"
-    password_file = _register(client, server, server_setup, password, credential_identifier)
+    password_file = _register(
+        client, server, server_setup, password, credential_identifier
+    )
 
     request, state = client.start_login(password)
     response, server_state = server.start_login(
@@ -81,7 +83,9 @@ def test_server_login_state_roundtrip():
     server_setup = ServerSetup()
     password = b"password"
     credential_identifier = b"user"
-    password_file = _register(client, server, server_setup, password, credential_identifier)
+    password_file = _register(
+        client, server, server_setup, password, credential_identifier
+    )
 
     request, state = client.start_login(password)
     response, server_state = server.start_login(

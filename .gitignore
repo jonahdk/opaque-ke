@@ -14,3 +14,4 @@
 *.pyd
 **/.pytest_cache/
 .serena/
+.codex
